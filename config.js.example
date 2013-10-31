@@ -1,1 +1,23 @@
- 
+module.exports = {
+
+    // Database settings
+    // Select Database to use. available: mongodb, mysql.
+    db: 'mongodb',
+
+    // MongoDB Settings
+    mongodb: 'mongodb://127.0.0.1/minimoedns',
+    // MySQL Settings
+    mysqlhost: '127.0.0.1',
+    mysqldb: 'minimoedns',
+    mysqluser: 'root',
+    mysqlpass: 'root',
+
+    // Status report server
+    statusReport: true,
+
+    // DNS Settings
+    defaultTTL: 3600,
+
+    // GeoIP configuration
+    GeoDB: './GeoIP.dat'
+}
