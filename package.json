@@ -1,0 +1,15 @@
+{
+    "name": "dnsserver",
+    "version": "0.0.1",
+    "private": true,
+    "scripts": {
+        "start": "node dnsserver.js"
+    },
+    "dependencies": {
+        "native-dns": "0.4.1",
+        "native-dns-packet": "*",
+        "geoip": "0.4.11",
+        "mongodb": "1.3.19",
+        "tldjs": "*"
+    }
+}
