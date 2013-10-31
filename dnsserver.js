@@ -5,8 +5,17 @@ var config = require('./config.js');
 var dns = require('native-dns'),
     consts = require('native-dns-packet').consts,
     tld = require('tldjs'),
-    geoip = require('geoip'),
-    Record = require('./record.js');
+    geoip = require('geoip');
+
+var Record = '';
+
+if (config.db === 'mongodb') {
+    Record = require('./record-mysql.js');
+} else if (config.db === 'mysql') {
+    Record = require('./record-mysql.js');
+} else {
+    return console.log('Incorrect database selection.');
+}
 
 var server = dns.createServer();
 
@@ -22,7 +31,7 @@ if (config.statusReport) {
 }
 
 server.on('request', function (request, response) {
-    console.log(request.address.address);
+    // console.log(request.address.address);
 
     var name = request.question[0].name,
         type = consts.qtypeToName(request.question[0].type),
@@ -32,7 +41,7 @@ server.on('request', function (request, response) {
     // Open the country data file
     var Country = geoip.Country;
     var country = new Country(config.GeoDB);
-    var sourceDest = country.lookupSync('8.8.8.8');
+    var sourceDest = country.lookupSync(sourceIP);
     // console.log(sourceDest);
 
     Record.queryGeo(name, type, sourceDest, function(err, georecords) {
@@ -40,7 +49,7 @@ server.on('request', function (request, response) {
             console.log(err);
         }
         if (georecords) {
-            console.log(georecords);
+            // console.log(georecords);
             console.log('GeoDNS Record(s) found, sending optimized records...');
             switch (georecords[0].type) {
                 case 'A':
@@ -48,7 +57,7 @@ server.on('request', function (request, response) {
                     georecords.forEach(function(record) {
                         response.answer.push(dns.A({
                             name: record.name,
-                            address: record.address,
+                            address: record.content,
                             ttl: record.ttl||config.defaultTTL
                         }));
                     });
@@ -58,7 +67,7 @@ server.on('request', function (request, response) {
                     georecords.forEach(function(record) {
                         response.answer.push(dns.AAAA({
                             name: record.name,
-                            address: record.address,
+                            address: record.content,
                             ttl: record.ttl||config.defaultTTL
                         }));
                     });
@@ -67,7 +76,7 @@ server.on('request', function (request, response) {
                     georecords.forEach(function(record) {
                         response.answer.push(dns.SRV({
                             name: record.name,
-                            data: record.data,
+                            data: record.content,
                             ttl: record.ttl||config.defaultTTL
                         }));
                     });
@@ -87,15 +96,16 @@ server.on('request', function (request, response) {
                             console.log(err);
                         }
                         if (doc) {
+                            var content = doc[0].content.split(" ");
                             response.authority.push(dns.SOA({
                                 name: doc[0].name,
-                                primary: doc[0].primary,
-                                admin: doc[0].admin,
-                                serial: doc[0].serial,
-                                refresh: doc[0].refresh,
-                                retry: doc[0].retry,
-                                expiration: doc[0].expiration,
-                                minimum: doc[0].minimum,
+                                primary: content[0],
+                                admin: content[1].replace("@", "."),
+                                serial: content[2],
+                                refresh: content[3],
+                                retry: content[4],
+                                expiration: content[5],
+                                minimum: content[6],
                                 ttl: doc[0].ttl||config.defaultTTL
                             }));
                             response.send();
@@ -106,26 +116,25 @@ server.on('request', function (request, response) {
                 } else {
                     switch (records[0].type) {
                         case 'SOA':
-                            records.forEach(function(record) {
-                                response.answer.push(dns.SOA({
-                                    name: record.name,
-                                    primary: record.primary,
-                                    admin: record.admin,
-                                    serial: record.serial,
-                                    refresh: record.refresh,
-                                    retry: record.retry,
-                                    expiration: record.expiration,
-                                    minimum: record.minimum,
-                                    ttl: record.ttl||config.defaultTTL
-                                }));
-                            });
+                            var content = records[0].content.split(" ");
+                            response.answer.push(dns.SOA({
+                                name: records[0].name,
+                                primary: content[0],
+                                admin: content[1].replace("@", "."),
+                                serial: content[2],
+                                refresh: content[3],
+                                retry: content[4],
+                                expiration: content[5],
+                                minimum: content[6],
+                                ttl: records[0].ttl||config.defaultTTL
+                            }));
                             break;
                         case 'A':
-                            records = records.sort(randomOrder);
+                            // records = records.sort(randomOrder);
                             records.forEach(function(record) {
                                 response.answer.push(dns.A({
                                     name: record.name,
-                                    address: record.address,
+                                    address: record.content,
                                     ttl: record.ttl||config.defaultTTL
                                 }));
                             });
@@ -135,7 +144,7 @@ server.on('request', function (request, response) {
                             records.forEach(function(record) {
                                 response.answer.push(dns.AAAA({
                                     name: record.name,
-                                    address: record.address,
+                                    address: record.content,
                                     ttl: record.ttl||config.defaultTTL
                                 }));
                             });
@@ -145,8 +154,8 @@ server.on('request', function (request, response) {
                             records.forEach(function(record) {
                                 response.answer.push(dns.MX({
                                     name: record.name,
-                                    priority: record.priority,
-                                    exchange: record.exchange,
+                                    priority: record.prio,
+                                    exchange: record.content,
                                     ttl: record.ttl||config.defaultTTL
                                 }));
                             });
@@ -155,19 +164,20 @@ server.on('request', function (request, response) {
                             records.forEach(function(record) {
                                 response.answer.push(dns.TXT({
                                     name: record.name,
-                                    data: record.data,
+                                    data: record.content,
                                     ttl: record.ttl||config.defaultTTL
                                 }));
                             });
                             break;
                         case 'SRV':
                             records.forEach(function(record) {
+                                var content = record.content.split(" ");
                                 response.answer.push(dns.SRV({
                                     name: record.name,
-                                    priority: record.priority,
-                                    weight: record.weight,
-                                    port: record.port,
-                                    target: record.target,
+                                    priority: record.prio,
+                                    weight: content[0],
+                                    port: content[1],
+                                    target: content[2],
                                     ttl: record.ttl||config.defaultTTL
                                 }));
                             });
@@ -176,7 +186,7 @@ server.on('request', function (request, response) {
                             records.forEach(function(record) {
                                 response.answer.push(dns.NS({
                                     name: record.name,
-                                    data: record.data,
+                                    data: record.content,
                                     ttl: record.ttl||config.defaultTTL
                                 }));
                                 // fixme: Additional section not working.
@@ -190,7 +200,7 @@ server.on('request', function (request, response) {
                                         docs.forEach(function(doc) {
                                             response.additional.push(dns.A({
                                                 name: doc.name,
-                                                address: doc.address,
+                                                address: doc.content,
                                                 ttl: doc.ttl||config.defaultTTL
                                             }));
                                         });
@@ -203,7 +213,7 @@ server.on('request', function (request, response) {
                             records.forEach(function(record) {
                                 response.answer.push(dns.SRV({
                                     name: record.name,
-                                    data: record.data,
+                                    data: record.content,
                                     ttl: record.ttl||config.defaultTTL
                                 }));
                             });
