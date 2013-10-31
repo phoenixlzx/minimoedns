@@ -6,7 +6,7 @@ var dns = require('native-dns'),
     consts = require('native-dns-packet').consts,
     geoip = require('geoip'),
     tld = require('tldjs'),
-    record = require('./record.js');
+    Record = require('./record.js');
 
 var server = dns.createServer();
 
@@ -27,13 +27,13 @@ server.on('request', function (request, response) {
     var name = request.question[0].name,
         type = consts.qtypeToName(request.question[0].type);
 
-    record.queryRecord(name, type, function(err, records) {
+    Record.queryRecord(name, type, function(err, records) {
         // console.log(records);
         if (err) {
             console.log(err);
         } else if (!records[0]) {
             // Try query for SOA, if failed then send NXDOMAIN.
-            record.queryRecord(tld.getDomain(name), 'SOA', function(err, doc) {
+            Record.queryRecord(tld.getDomain(name), 'SOA', function(err, doc) {
                 // console.log(doc);
                 if (err) {
                     console.log(err);
@@ -124,8 +124,45 @@ server.on('request', function (request, response) {
                         }));
                     });
                     break;
+                case 'NS':
+                    records.forEach(function(record) {
+                        response.answer.push(dns.NS({
+                            name: record.name,
+                            data: record.data,
+                            ttl: record.ttl||config.defaultTTL
+                        }));
+                        // fixme: Additional section not working.
+                        Record.queryRecord(record.data, 'A', function(err, docs) {
+                            // console.log(record.data);
+                            // console.log(docs);
+                            if (err) {
+                                console.log(err);
+                            }
+                            if (docs) {
+                                docs.forEach(function(doc) {
+                                    response.additional.push(dns.A({
+                                        name: doc.name,
+                                        address: doc.address,
+                                        ttl: doc.ttl||config.defaultTTL
+                                    }));
+                                });
+                            }
+                        });
+                    });
+
+                    break;
+                case 'CNAME':
+                    records.forEach(function(record) {
+                        response.answer.push(dns.SRV({
+                            name: record.name,
+                            data: record.data,
+                            ttl: record.ttl||config.defaultTTL
+                        }));
+                    });
+                    break;
             }
             response.send();
+            // console.log(response);
         }
     });
 /*
@@ -146,7 +183,7 @@ server.on('request', function (request, response) {
     }));
     response.send();
     */
-    console.log(response);
+
 });
 
 server.on('error', function (err, buff, req, res) {
