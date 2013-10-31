@@ -48,7 +48,7 @@ server.on('request', function (request, response) {
         if (err) {
             console.log(err);
         }
-        if (georecords) {
+        if (georecords[0]) {
             // console.log(georecords);
             // console.log('GeoDNS Record(s) found, sending optimized records...');
             switch (georecords[0].type) {
