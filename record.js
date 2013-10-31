@@ -30,12 +30,14 @@ MongoClient.connect(config.mongodb, {db: {native_parser: true, w : 1}}, function
             .collection('records')
             .find({
                 name: name,
-                type: type
-            },  { $or: [
-                    {geo: dest.country_code},
-                    {geo: dest.country_code3},
-                    {geo: dest.continent_code}
-                ]})
+                type: type,
+                geo: {$in: [
+                    dest.country_code,
+                    dest.country_code3,
+                    dest.country_name,
+                    dest.continent_code
+                ]}
+            })
             .toArray(function(err, docs) {
                 if (err) {
                     return callback(err, null);

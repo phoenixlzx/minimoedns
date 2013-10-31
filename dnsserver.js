@@ -32,7 +32,7 @@ server.on('request', function (request, response) {
     // Open the country data file
     var Country = geoip.Country;
     var country = new Country(config.GeoDB);
-    var sourceDest = country.lookupSync(sourceIP);
+    var sourceDest = country.lookupSync('8.8.8.8');
     // console.log(sourceDest);
 
     Record.queryGeo(name, type, sourceDest, function(err, georecords) {
@@ -40,6 +40,7 @@ server.on('request', function (request, response) {
             console.log(err);
         }
         if (georecords) {
+            console.log(georecords);
             console.log('GeoDNS Record(s) found, sending optimized records...');
             switch (georecords[0].type) {
                 case 'A':
@@ -213,8 +214,6 @@ server.on('request', function (request, response) {
                 }
             });
         }
-
-
     });
 
 });
