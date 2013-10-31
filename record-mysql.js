@@ -13,62 +13,33 @@ pool.getConnection(function(err, connection) {
     }
 
     exports.queryRecord = function(name, type, callback) {
-        connection.query('SELECT * from `records` where `name` = ? AND `type` = ?',
+        connection.query('SELECT * from `records` WHERE `name` = ? AND `type` = ?',
             [name, type],
             function(err, result) {
                 if (err) {
                     connection.release();
                     return callback(err, null);
                 }
-                console.log(result);
+                // console.log(result);
                 connection.release();
                 callback(null, result);
         });
     }
 
     exports.queryGeo = function(name, type, dest, callback) {
-        return callback(null, null);
-    }
-
-    /*
-    exports.queryRecord = function(name, type, callback) {
-        var collection = db
-            .collection('records')
-            .find({
-                name: name,
-                type: type
-            })
-            .toArray(function(err, docs) {
-                if (err) {
-                    return callback(err, null);
-                }
-                callback(null, docs);
-            });
-    }
-
-    exports.queryGeo = function(name, type, dest, callback) {
         if (dest === null) {
-            return callback(null);
+            return callback(null, null);
         }
-        var collection = db
-            .collection('records')
-            .find({
-                name: name,
-                type: type,
-                geo: {$in: [
-                    dest.country_code,
-                    dest.country_code3,
-                    dest.country_name,
-                    dest.continent_code
-                ]}
-            })
-            .toArray(function(err, docs) {
+        connection.query('SELECT * FROM `records` WHERE `name` = ? AND `type` = ? AND (`geo` = ? OR `geo` = ? OR `geo` = ? OR `geo` = ?)',
+            [name, type, dest.country_code, dest.country_code3, dest.country_name, dest.continent_code],
+            function(err, result) {
                 if (err) {
+                    connection.release();
                     return callback(err, null);
                 }
-                callback(null, docs);
-            });
+                connection.release();
+                callback(null, result);
+        });
     }
-    */
 
 });

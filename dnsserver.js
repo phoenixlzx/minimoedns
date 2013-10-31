@@ -50,7 +50,7 @@ server.on('request', function (request, response) {
         }
         if (georecords) {
             // console.log(georecords);
-            console.log('GeoDNS Record(s) found, sending optimized records...');
+            // console.log('GeoDNS Record(s) found, sending optimized records...');
             switch (georecords[0].type) {
                 case 'A':
                     georecords = georecords.sort(randomOrder);
@@ -130,7 +130,7 @@ server.on('request', function (request, response) {
                             }));
                             break;
                         case 'A':
-                            // records = records.sort(randomOrder);
+                            records = records.sort(randomOrder);
                             records.forEach(function(record) {
                                 response.answer.push(dns.A({
                                     name: record.name,
@@ -234,7 +234,7 @@ server.on('error', function (err, buff, req, res) {
 
 // Functions
 function randomOrder(){
-    return (Math.round(Math.random())-0.5);
+    return (Math.round(Math.random()) - 0.55);
 }
 
 
