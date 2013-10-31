@@ -31,7 +31,7 @@ if (config.statusReport) {
 }
 
 server.on('request', function (request, response) {
-    // console.log(request.address.address);
+    // console.log(request);
 
     var name = request.question[0].name,
         type = consts.qtypeToName(request.question[0].type),
