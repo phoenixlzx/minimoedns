@@ -22,8 +22,8 @@ var server = dns.createServer();
 // Live status listener
 if (config.statusReport) {
     var net = require('net');
-    var statusServer = net.createServer(function(c) { //'connection' listener
-        console.log('server connected');
+    var statusServer = net.createServer(function() { //'connection' listener
+        console.log('Status server connected');
     });
     statusServer.listen(5353, function() { //'listening' listener
         console.log('Status server started at port 5353.');
