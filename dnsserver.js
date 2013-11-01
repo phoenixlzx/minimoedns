@@ -27,7 +27,7 @@ if (config.enableTCP) {
     var TCPserver = dns.createTCPServer();
     TCPserver.serve(config.port);
 }
-console.log('DNS Server started at port 53.');
+console.log('DNS Server started at port ' + config.port + '.');
 
 // Query events...
 UDPserver.on('request', minimoedns);
@@ -114,7 +114,7 @@ function minimoedns(request, response) {
                     if (sub == '') {
                         // directly try to query for SOA
                         Record.queryRecord(name, 'SOA', function(err, doc) {
-                            console.log('exec2');
+                            // console.log('exec2');
                             // console.log(doc);
                             if (err) {
                                 console.log(err);
@@ -145,7 +145,7 @@ function minimoedns(request, response) {
                             return !tld.getSubdomain(queryName);
                         }, function(callback) {
                             queryName = queryName.substr(queryName.indexOf('.') + 1);
-                            console.log(queryName);
+                            // console.log(queryName);
                             Record.queryRecord('*.' + queryName, type, function(err, doc) {
                                 // console.log(doc)
                                 if (err) {
