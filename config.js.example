@@ -12,10 +12,11 @@ module.exports = {
     mysqluser: 'root',
     mysqlpass: 'root',
 
-    // Status report server
-    statusReport: true,
+    // enable TCP
+    enableTCP: true,
 
     // DNS Settings
+    port: 15353,
     defaultTTL: 3600,
     nameservers: ['ns1.example.com', 'ns2.example.com'],
     nameserversIP: ['127.0.0.1', '127.0.0.2'],
