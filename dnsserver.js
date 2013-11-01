@@ -95,7 +95,7 @@ server.on('request', function (request, response) {
                 } else if (!records[0]) {
                     // Query if wildcard exists.
                     var sub = tld.getSubdomain(name),
-                        pattern = new RegExp('.');
+                        pattern = new RegExp(/\./);
                     // console.log(sub);
                     if (sub == '') {
                         // directly try to query for SOA
