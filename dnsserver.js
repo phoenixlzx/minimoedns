@@ -103,7 +103,7 @@ server.on('request', function (request, response) {
                     if (sub == '') {
                         // directly try to query for SOA
                         Record.queryRecord(name, 'SOA', function(err, doc) {
-                            // console.log('exec2');
+                            console.log('exec2');
                             // console.log(doc);
                             if (err) {
                                 console.log(err);
@@ -129,8 +129,7 @@ server.on('request', function (request, response) {
                             }
                         });
                     } else if (pattern.test(sub)) {
-                        if (sub.indexOf('.') != -1) {
-                            async.until(function() {
+                        async.until(function() {
                                 return !pattern.test(tld.getSubdomain(name));
                             }, function(callback) {
                                 name = name.substr(name.indexOf('.') + 1);
@@ -174,8 +173,8 @@ server.on('request', function (request, response) {
                                 response.header.rcode = consts.NAME_TO_RCODE.NOTFOUND;
                                 response.send();
                             });
-                        } else {
-                            name = name.replace(name.slice(0, name.indexOf('.')), '*');
+                    } else {
+                        name = name.replace(name.slice(0, name.indexOf('.')), '*');
                             // console.log(name);
                             Record.queryRecord(name, type, function(err, doc) {
                                 // console.log(doc);
@@ -212,7 +211,6 @@ server.on('request', function (request, response) {
                                     response.send();
                                 }
                             });
-                        }
                     }
 
                 } else {
@@ -330,6 +328,7 @@ server.on('request', function (request, response) {
                             */
                             break;
                         case 'CNAME':
+                            records = records.sort(randomOrder);
                             records.forEach(function(record) {
                                 response.answer.push(dns.CNAME({
                                     name: record.name,
@@ -356,7 +355,7 @@ server.on('error', function (err, buff, req, res) {
 
 // Functions
 function randomOrder(){
-    return (Math.round(Math.random()) - 0.55);
+    return (Math.round(Math.random()) - 0.52);
 }
 
 
