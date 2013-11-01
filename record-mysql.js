@@ -13,7 +13,7 @@ pool.getConnection(function(err, connection) {
     }
 
     exports.queryRecord = function(name, type, callback) {
-        connection.query('SELECT * from `records` WHERE `name` = ? AND `type` = ?',
+        connection.query('SELECT * from `records` WHERE `name` = ? AND (`type` = ? OR `type` = "CNAME")',
             [name, type],
             function(err, result) {
                 if (err) {
@@ -30,7 +30,7 @@ pool.getConnection(function(err, connection) {
         if (dest === null) {
             return callback(null, null);
         }
-        connection.query('SELECT * FROM `records` WHERE `name` = ? AND `type` = ? AND (`geo` = ? OR `geo` = ? OR `geo` = ? OR `geo` = ?)',
+        connection.query('SELECT * FROM `records` WHERE `name` = ? AND (`type` = ? OR `type` = "CNAME") AND (`geo` = ? OR `geo` = ? OR `geo` = ? OR `geo` = ?)',
             [name, type, dest.country_code, dest.country_code3, dest.country_name, dest.continent_code],
             function(err, result) {
                 if (err) {

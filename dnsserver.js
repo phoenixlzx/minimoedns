@@ -5,6 +5,7 @@ var config = require('./config.js');
 var dns = require('native-dns'),
     consts = require('native-dns-packet').consts,
     tld = require('tldjs'),
+    async = require('async'),
     geoip = require('geoip');
 
 var Record = '';
@@ -45,10 +46,11 @@ server.on('request', function (request, response) {
     // console.log(sourceDest);
 
     Record.queryGeo(name, type, sourceDest, function(err, georecords) {
+        // console.log(georecords);
         if (err) {
             console.log(err);
         }
-        if (georecords[0]) {
+        if (georecords) {
             // console.log(georecords);
             // console.log('GeoDNS Record(s) found, sending optimized records...');
             switch (georecords[0].type) {
@@ -74,7 +76,7 @@ server.on('request', function (request, response) {
                     break;
                 case 'CNAME':
                     georecords.forEach(function(record) {
-                        response.answer.push(dns.SRV({
+                        response.answer.push(dns.CNAME({
                             name: record.name,
                             data: record.content,
                             ttl: record.ttl||config.defaultTTL
@@ -85,34 +87,130 @@ server.on('request', function (request, response) {
             response.send();
         } else {
             Record.queryRecord(name, type, function(err, records) {
+                // console.log('exec1');
                 // console.log(records);
                 if (err) {
                     console.log(err);
                 } else if (!records[0]) {
-                    // Try query for SOA, if failed then send NXDOMAIN.
-                    Record.queryRecord(tld.getDomain(name), 'SOA', function(err, doc) {
-                        // console.log(doc);
-                        if (err) {
-                            console.log(err);
-                        }
-                        if (doc) {
-                            var content = doc[0].content.split(" ");
-                            response.authority.push(dns.SOA({
-                                name: doc[0].name,
-                                primary: content[0],
-                                admin: content[1].replace("@", "."),
-                                serial: content[2],
-                                refresh: content[3],
-                                retry: content[4],
-                                expiration: content[5],
-                                minimum: content[6],
-                                ttl: doc[0].ttl||config.defaultTTL
-                            }));
-                            response.send();
+                    // Query if wildcard exists.
+                    var sub = tld.getSubdomain(name),
+                        pattern = new RegExp('.');
+                    // console.log(sub);
+                    if (sub == '') {
+                        // directly try to query for SOA
+                        Record.queryRecord(name, 'SOA', function(err, doc) {
+                            // console.log('exec2');
+                            // console.log(doc);
+                            if (err) {
+                                console.log(err);
+                            }
+                            if (doc[0]) {
+                                var content = doc[0].content.split(" ");
+                                response.authority.push(dns.SOA({
+                                    name: doc[0].name,
+                                    primary: content[0],
+                                    admin: content[1].replace("@", "."),
+                                    serial: content[2],
+                                    refresh: content[3],
+                                    retry: content[4],
+                                    expiration: content[5],
+                                    minimum: content[6],
+                                    ttl: doc[0].ttl||config.defaultTTL
+                                }));
+                                response.send();
+                            } else {
+                                // console.log('NXDOMAIN');
+                                response.header.rcode = consts.NAME_TO_RCODE.NOTFOUND;
+                                response.send();
+                            }
+                        });
+                    } else if (pattern.test(sub)) {
+                        if (sub.indexOf('.') != -1) {
+                            async.until(function() {
+                                return !pattern.test(tld.getSubdomain(name));
+                            }, function(callback) {
+                                name = name.substr(name.indexOf('.') + 1);
+                                // console.log(name);
+                                Record.queryRecord('*.' + name, type, function(err, doc) {
+                                    console.log(doc)
+                                    if (err) {
+                                        console.log(err);
+                                    }
+                                    if (doc[0]) {
+                                        // console.log(doc[0].type);
+                                        switch (doc[0].type) {
+                                            case 'A':
+                                                response.answer.push(dns.A({
+                                                    name: doc[0].name,
+                                                    address: doc[0].content,
+                                                    ttl: doc[0].ttl||config.defaultTTL
+                                                }));
+                                                break;
+                                            case 'AAAA':
+                                                response.answer.push(dns.AAAA({
+                                                    name: doc[0].name,
+                                                    address: doc[0].content,
+                                                    ttl: doc[0].ttl||config.defaultTTL
+                                                }));
+                                                break;
+                                            case 'CNAME':
+                                                response.answer.push(dns.CNAME({
+                                                    name: doc[0].name,
+                                                    data: doc[0].content,
+                                                    ttl: doc[0].ttl||config.defaultTTL
+                                                }));
+                                                break;
+                                        }
+                                        return response.send();
+
+                                    }
+                                    callback();
+                                });
+                            }, function() {
+                                response.header.rcode = consts.NAME_TO_RCODE.NOTFOUND;
+                                response.send();
+                            });
                         } else {
-                            console.log('NXDOMAIN');
+                            name = name.replace(name.slice(0, name.indexOf('.')), '*');
+                            // console.log(name);
+                            Record.queryRecord(name, type, function(err, doc) {
+                                // console.log(doc);
+                                if (err) {
+                                    console.log(err);
+                                }
+                                if (doc[0]) {
+                                    switch (doc[0].type) {
+                                        case 'A':
+                                            response.answer.push(dns.A({
+                                                name: doc[0].name,
+                                                address: doc[0].content,
+                                                ttl: doc[0].ttl||config.defaultTTL
+                                            }));
+                                            break;
+                                        case 'AAAA':
+                                            response.answer.push(dns.AAAA({
+                                                name: doc[0].name,
+                                                address: doc[0].content,
+                                                ttl: doc[0].ttl||config.defaultTTL
+                                            }));
+                                            break;
+                                        case 'CNAME':
+                                            response.answer.push(dns.CNAME({
+                                                name: doc[0].name,
+                                                data: doc[0].content,
+                                                ttl: doc[0].ttl||config.defaultTTL
+                                            }));
+                                            break;
+                                    }
+                                    return response.send();
+                                } else {
+                                    response.header.rcode = consts.NAME_TO_RCODE.NOTFOUND;
+                                    response.send();
+                                }
+                            })
                         }
-                    });
+                    }
+
                 } else {
                     switch (records[0].type) {
                         case 'SOA':
@@ -183,21 +281,39 @@ server.on('request', function (request, response) {
                             });
                             break;
                         case 'NS':
+                            async.eachSeries(records, function(record, callback) {
+                                response.answer.push(dns.NS({
+                                    name: record.name,
+                                    data: record.content,
+                                    ttl: record.ttl||config.defaultTTL
+                                }));
+                                callback();
+                            }, function() {
+                                for(var i = 0; i != config.nameservers.length; i++) {
+                                    response.additional.push(dns.A({
+                                        name: config.nameservers[i],
+                                        address: config.nameserversIP[i],
+                                        ttl: config.defaultTTL
+                                    }));
+                                }
+                            });
+                            /*
                             records.forEach(function(record) {
                                 response.answer.push(dns.NS({
                                     name: record.name,
                                     data: record.content,
                                     ttl: record.ttl||config.defaultTTL
                                 }));
-                                // fixme: Additional section not working.
-                                Record.queryRecord(record.data, 'A', function(err, docs) {
-                                    // console.log(record.data);
+                                // fixme: response.additional.push not working.
+                                Record.queryRecord(record.content, 'A', function(err, docs) {
+                                    // console.log(record.content);
                                     // console.log(docs);
                                     if (err) {
                                         console.log(err);
                                     }
                                     if (docs) {
                                         docs.forEach(function(doc) {
+                                            console.log(doc);
                                             response.additional.push(dns.A({
                                                 name: doc.name,
                                                 address: doc.content,
@@ -207,20 +323,22 @@ server.on('request', function (request, response) {
                                     }
                                 });
                             });
-
+                            */
                             break;
                         case 'CNAME':
                             records.forEach(function(record) {
-                                response.answer.push(dns.SRV({
+                                response.answer.push(dns.CNAME({
                                     name: record.name,
                                     data: record.content,
                                     ttl: record.ttl||config.defaultTTL
                                 }));
+
                             });
                             break;
                     }
+                    console.log(response);
+
                     response.send();
-                    // console.log(response);
                 }
             });
         }
@@ -238,5 +356,5 @@ function randomOrder(){
 }
 
 
-server.serve(15353);
+server.serve(5353);
 console.log('DNS Server started at port 53.');
