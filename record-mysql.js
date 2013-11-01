@@ -28,7 +28,7 @@ pool.getConnection(function(err, connection) {
 
     exports.queryGeo = function(name, type, dest, callback) {
         if (dest === null) {
-            return callback(null, null);
+            return callback(null, []);
         }
         connection.query('SELECT * FROM `records` WHERE `name` = ? AND (`type` = ? OR `type` = "CNAME") AND (`geo` = ? OR `geo` = ? OR `geo` = ? OR `geo` = ?)',
             [name, type, dest.country_code, dest.country_code3, dest.country_name, dest.continent_code],

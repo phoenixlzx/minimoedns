@@ -45,6 +45,7 @@ server.on('request', function (request, response) {
     var sourceDest = country.lookupSync(sourceIP);
     // console.log(sourceDest);
 
+    console.log(sourceIP + ' requested ' + name);
     Record.queryGeo(name, type, sourceDest, function(err, georecords) {
         // console.log(georecords);
         if (err) {
