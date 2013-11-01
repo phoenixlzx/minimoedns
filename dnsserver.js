@@ -46,6 +46,9 @@ server.on('request', function (request, response) {
     // console.log(sourceDest);
 
     console.log(sourceIP + ' requested ' + name);
+    if (!tld.isValid(name)) {
+        return response.send();
+    }
     Record.queryGeo(name, type, sourceDest, function(err, georecords) {
         // console.log(georecords);
         if (err) {
@@ -208,7 +211,7 @@ server.on('request', function (request, response) {
                                     response.header.rcode = consts.NAME_TO_RCODE.NOTFOUND;
                                     response.send();
                                 }
-                            })
+                            });
                         }
                     }
 
