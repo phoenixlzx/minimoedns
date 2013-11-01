@@ -50,7 +50,7 @@ server.on('request', function (request, response) {
         if (err) {
             console.log(err);
         }
-        if (georecords) {
+        if (georecords[0]) {
             // console.log(georecords);
             // console.log('GeoDNS Record(s) found, sending optimized records...');
             switch (georecords[0].type) {
@@ -132,7 +132,7 @@ server.on('request', function (request, response) {
                                 name = name.substr(name.indexOf('.') + 1);
                                 // console.log(name);
                                 Record.queryRecord('*.' + name, type, function(err, doc) {
-                                    console.log(doc)
+                                    // console.log(doc)
                                     if (err) {
                                         console.log(err);
                                     }
@@ -336,7 +336,7 @@ server.on('request', function (request, response) {
                             });
                             break;
                     }
-                    console.log(response);
+                    // console.log(response);
 
                     response.send();
                 }
@@ -356,5 +356,5 @@ function randomOrder(){
 }
 
 
-server.serve(5353);
+server.serve(15353);
 console.log('DNS Server started at port 53.');
