@@ -58,6 +58,7 @@ function minimoedns(request, response) {
 
     console.log(sourceIP + ' requested ' + name);
     if (!tld.isValid(name)) {
+        response.header.rcode = consts.NAME_TO_RCODE.NOTFOUND;
         return response.send();
     }
     Record.queryGeo(name, type, sourceDest, function(err, georecords) {
@@ -132,6 +133,7 @@ function minimoedns(request, response) {
                                     minimum: content[6],
                                     ttl: doc[0].ttl||config.defaultTTL
                                 }));
+                                response.header.rcode = consts.NAME_TO_RCODE.NOTFOUND;
                                 response.send();
                             } else {
                                 // console.log('NXDOMAIN');
@@ -182,8 +184,27 @@ function minimoedns(request, response) {
                                 callback();
                             });
                         }, function() {
-                            response.header.rcode = consts.NAME_TO_RCODE.NOTFOUND;
-                            response.send();
+                            Record.queryRecord(tld.getDomain(name), 'SOA', function(err, doc) {
+                                if (err) {
+                                    console.log(err);
+                                }
+                                if (doc[0]) {
+                                    var content = doc[0].content.split(" ");
+                                    response.authority.push(dns.SOA({
+                                        name: doc[0].name,
+                                        primary: content[0],
+                                        admin: content[1].replace("@", "."),
+                                        serial: content[2],
+                                        refresh: content[3],
+                                        retry: content[4],
+                                        expiration: content[5],
+                                        minimum: content[6],
+                                        ttl: doc[0].ttl||config.defaultTTL
+                                    }));
+                                }
+                                response.header.rcode = consts.NAME_TO_RCODE.NOTFOUND;
+                                response.send();
+                            });
                         });
                     }
 
