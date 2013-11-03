@@ -34,8 +34,13 @@ UDPserver.on('request', minimoedns);
 TCPserver.on('request', minimoedns);
 
 UDPserver.on('error', function (err, buff, req, res) {
-    console.log(err.stack);
+    console.log('UDP Server ERR:\n');
+    console.log(err);
 });
+TCPserver.on('error', function (err, buff, req, res) {
+    console.log('TCP Server ERR:\n');
+    console.log(err);
+})
 
 // Functions
 function randomOrder(){
