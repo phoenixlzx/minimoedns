@@ -8,6 +8,7 @@ module.exports = {
     mongodb: 'mongodb://127.0.0.1/minimoedns',
     // MySQL Settings
     mysqlhost: '127.0.0.1',
+    mysqlsocket: '/run/mysqld/mysqld.sock',
     mysqldb: 'minimoedns',
     mysqluser: 'root',
     mysqlpass: 'root',

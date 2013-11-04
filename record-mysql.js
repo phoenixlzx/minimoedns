@@ -1,13 +1,24 @@
 var config = require('./config.js'),
     mysql = require('mysql');
-var pool  = mysql.createPool({
-    host     : config.mysqlhost,
-    database : config.mysqldb,
-    user     : config.mysqluser,
-    password : config.mysqlpass,
-    connectionLimit: 100
-});
+var pool  = '';
 
+if (!config.mysqlsocket) {
+    pool  = mysql.createPool({
+        host     : config.mysqlhost,
+        database : config.mysqldb,
+        user     : config.mysqluser,
+        password : config.mysqlpass,
+        connectionLimit: 100
+    });
+} else {
+    pool  = mysql.createPool({
+        socketPath : config.mysqlsocket,
+        database : config.mysqldb,
+        user     : config.mysqluser,
+        password : config.mysqlpass,
+        connectionLimit: 100
+    });
+}
 
 
 pool.getConnection(function(err, connection) {
