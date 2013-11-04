@@ -8,19 +8,23 @@ var pool  = mysql.createPool({
     connectionLimit: 100
 });
 
+
+
 pool.getConnection(function(err, connection) {
     if (err) {
-        console.log(err);
+        console.log(err.stack);
+        pool.releaseConnection();
     }
+
+    // Ping database for every 1 hour as it may close connection while idle.
+    setInterval(function() {
+        keepAlive();
+    }, 3600000);
 
     exports.queryRecord = function(name, type, callback) {
         connection.query('SELECT * from `records` WHERE `name` = ? AND (`type` = ? OR `type` = "CNAME")',
             [name, type],
             function(err, result) {
-                // Set timeout as node-mysql still implementing this.
-                var timer = setTimeout(function() {
-                    connection.release();
-                }, 100)
                 if (err) {
                     connection.release();
                     return callback(err, null);
@@ -45,6 +49,11 @@ pool.getConnection(function(err, connection) {
                 connection.release();
                 callback(null, result);
         });
+    }
+
+    function keepAlive() {
+        connection.ping();
+        connection.release();
     }
 
 });
