@@ -66,8 +66,8 @@ function minimoedns(request, response) {
     // Get source IP
     var sourceDest = country.lookupSync(sourceIP),
         sourceISP = isp.lookupSync(sourceIP);
-    console.log(sourceDest);
-    console.log(sourceISP);
+    // console.log(sourceDest);
+    // console.log(sourceISP);
     console.log(sourceIP + ' requested ' + name);
     if (!tld.isValid(name)) {
         response.header.rcode = consts.NAME_TO_RCODE.NOTFOUND;
