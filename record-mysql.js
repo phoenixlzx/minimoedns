@@ -73,7 +73,7 @@ pool.getConnection(function(err, connection) {
                     connection.release();
                     return callback(null, result);
                 } else {
-                    connection.query('SELECT * FROM `records` WHERE `name` = ? AND (`type` = ? OR `type` = "CNAME") AND (`geo` = ? OR `geo` = ? OR `geo` = ? OR `geo` = ?) AND `geoisp` IS NULL)',
+                    connection.query('SELECT * FROM `records` WHERE `name` = ? AND (`type` = ? OR `type` = "CNAME") AND (`geo` = ? OR `geo` = ? OR `geo` = ? OR `geo` = ?) AND `geoisp` IS NULL',
                         [name, type, dest.country_code, dest.country_code3, dest.country_name, dest.continent_code],
                         function(err, result2) {
                             if (err) {
