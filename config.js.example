@@ -22,5 +22,6 @@ module.exports = {
     nameservers: ['ns1.example.com', 'ns2.example.com'],
     nameserversIP: ['127.0.0.1', '127.0.0.2'],
     // GeoIP configuration
-    GeoDB: './GeoIP.dat'
+    GeoDB: './GeoIP.dat',
+    GeoISP: './GeoIPISP.dat'
 }
