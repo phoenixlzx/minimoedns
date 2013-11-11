@@ -11,10 +11,11 @@ var dns = require('native-dns'),
 var Record = '';
 
 // GeoIP setup
-var Country = geoip.Country;
-var country = new Country(config.GeoDB);
+var country = new geoip.Country(config.GeoDB);
+var isp = new geoip.Org(config.GeoISP);
 setInterval(function() {
     country.update(config.GeoDB);
+    isp.update(config.GeoISP);
     // console.log('GeoIP Data updated.');
 }, 86400000);
 
@@ -60,18 +61,19 @@ function minimoedns(request, response) {
 
     var name = request.question[0].name,
         type = consts.qtypeToName(request.question[0].type),
-        sourceIP = request.address.address;
-
+        // sourceIP = request.address.address;
+        sourceIP = '8.8.8.8'
     // Get source IP
-    var sourceDest = country.lookupSync(sourceIP);
-    // console.log(sourceDest);
-
+    var sourceDest = country.lookupSync(sourceIP),
+        sourceISP = isp.lookupSync(sourceIP);
+    console.log(sourceDest);
+    console.log(sourceISP);
     console.log(sourceIP + ' requested ' + name);
     if (!tld.isValid(name)) {
         response.header.rcode = consts.NAME_TO_RCODE.NOTFOUND;
         return response.send();
     }
-    Record.queryGeo(name, type, sourceDest, function(err, georecords) {
+    Record.queryGeo(name, type, sourceDest, sourceISP, function(err, georecords) {
         // console.log(georecords);
         if (err) {
             console.log(err);

@@ -58,12 +58,12 @@ pool.getConnection(function(err, connection) {
         });
     }
 
-    exports.queryGeo = function(name, type, dest, callback) {
-        if (dest === null) {
+    exports.queryGeo = function(name, type, dest, isp, callback) {
+        if (dest === null || isp === null) {
             return callback(null, []);
         }
-        connection.query('SELECT * FROM `records` WHERE `name` = ? AND (`type` = ? OR `type` = "CNAME") AND (`geo` = ? OR `geo` = ? OR `geo` = ? OR `geo` = ?)',
-            [name, type, dest.country_code, dest.country_code3, dest.country_name, dest.continent_code],
+        connection.query('SELECT * FROM `records` WHERE `name` = ? AND (`type` = ? OR `type` = "CNAME") AND (`geo` = ? OR `geo` = ? OR `geo` = ? OR `geo` = ?) AND (INSTR(`geoisp`, geoisp) OR `geoisp` IS NULL)',
+            [name, type, dest.country_code, dest.country_code3, dest.country_name, dest.continent_code, isp],
             function(err, result) {
                 if (err) {
                     connection.release();
