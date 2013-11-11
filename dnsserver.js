@@ -61,8 +61,8 @@ function minimoedns(request, response) {
 
     var name = request.question[0].name,
         type = consts.qtypeToName(request.question[0].type),
-        // sourceIP = request.address.address;
-        sourceIP = '8.8.8.8'
+        sourceIP = request.address.address;
+
     // Get source IP
     var sourceDest = country.lookupSync(sourceIP),
         sourceISP = isp.lookupSync(sourceIP);
