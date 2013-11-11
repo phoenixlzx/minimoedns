@@ -10,6 +10,14 @@ var dns = require('native-dns'),
 
 var Record = '';
 
+// GeoIP setup
+var Country = geoip.Country;
+var country = new Country(config.GeoDB);
+setInterval(function() {
+    country.update(config.GeoDB);
+    // console.log('GeoIP Data updated.');
+}, 86400000);
+
 if (config.db === 'mongodb') {
     Record = require('./record-mysql.js');
 } else if (config.db === 'mysql') {
@@ -55,9 +63,6 @@ function minimoedns(request, response) {
         sourceIP = request.address.address;
 
     // Get source IP
-    // Open the country data file
-    var Country = geoip.Country;
-    var country = new Country(config.GeoDB);
     var sourceDest = country.lookupSync(sourceIP);
     // console.log(sourceDest);
 
