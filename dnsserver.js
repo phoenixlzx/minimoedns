@@ -80,7 +80,7 @@ function minimoedns(request, response) {
             response.header.rcode = consts.NAME_TO_RCODE.NOTFOUND;
             response.send();
         } else {
-            response.header.aa = 1;
+            response.header.aa = name;
             Record.queryGeo(name, type, sourceDest, sourceISP, function(err, georecords) {
                 // console.log(georecords);
                 if (err) {
