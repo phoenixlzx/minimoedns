@@ -73,6 +73,17 @@ function minimoedns(request, response) {
         response.header.rcode = consts.NAME_TO_RCODE.NOTFOUND;
         return response.send();
     }
+    // return version if quested version.bind
+    if (name === 'version.bind' && type === 'TXT') {
+        response.answer.push(dns.TXT({
+            name: 'version.bind',
+            data: config.version || 'MiniMoeDNS',
+            ttl: 5
+        }));
+        response.answer[0].class = 3;
+        // console.log(response);
+        return response.send();
+    }
     Record.queryRecord(tld.getDomain(name), 'SOA', function(err, SOAresult) {
         if (err) {
             console.log(err);

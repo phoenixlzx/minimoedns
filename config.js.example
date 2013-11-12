@@ -21,6 +21,8 @@ module.exports = {
     defaultTTL: 3600,
     nameservers: ['ns1.example.com', 'ns2.example.com'],
     nameserversIP: ['127.0.0.1', '127.0.0.2'],
+    version: 'Powered by MiniMoeDNS',
+
     // GeoIP configuration
     GeoDB: './GeoIP.dat',
     GeoISP: './GeoIPISP.dat'
