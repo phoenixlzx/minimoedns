@@ -56,12 +56,25 @@ function randomOrder() {
     return (Math.round(Math.random()) - 0.52);
 }
 
+function authorityNS(res, queryName, callback) {
+    // Send authority NS records.
+    config.nameservers.forEach(function(ns) {
+        response.authority.push(dns.NS({
+            name: queryName,
+            data: ns,
+            ttl: config.defaultTTL
+        }));
+    });
+    callback();
+}
+
 function minimoedns(request, response) {
     // console.log(request);
 
     var name = request.question[0].name,
         type = consts.qtypeToName(request.question[0].type),
         sourceIP = request.address.address;
+    var tldname = tld.getDomain(name);
 
     // Get source IP
     var sourceDest = country.lookupSync(sourceIP),
@@ -84,7 +97,7 @@ function minimoedns(request, response) {
         // console.log(response);
         return response.send();
     }
-    Record.queryRecord(tld.getDomain(name), 'SOA', function(err, SOAresult) {
+    Record.queryRecord(tldname, 'SOA', function(err, SOAresult) {
         if (err) {
             console.log(err);
         } else if (!SOAresult[0]) {
@@ -131,7 +144,15 @@ function minimoedns(request, response) {
                             });
                             break;
                     }
-                    response.send();
+                        // Send authority NS records.
+                    config.nameservers.forEach(function(ns) {
+                        response.authority.push(dns.NS({
+                            name: tldname,
+                            data: ns,
+                            ttl: config.defaultTTL
+                        }));
+                    });
+                    return response.send();
                 } else {
                     Record.queryRecord(name, type, function(err, records) {
                         // console.log('exec1');
@@ -158,6 +179,7 @@ function minimoedns(request, response) {
                                     minimum: content[6],
                                     ttl: SOAresult[0].ttl||config.defaultTTL
                                 }));
+                                response.header.rcode = consts.NAME_TO_RCODE.NOTFOUND;
                                 response.send();
                                 /*
                                 Record.queryRecord(name, 'SOA', function(err, doc) {
@@ -225,8 +247,15 @@ function minimoedns(request, response) {
                                                     }));
                                                     break;
                                             }
+                                            // Send authority NS records.
+                                            config.nameservers.forEach(function(ns) {
+                                                response.authority.push(dns.NS({
+                                                    name: tldname,
+                                                    data: ns,
+                                                    ttl: config.defaultTTL
+                                                }));
+                                            });
                                             return response.send();
-
                                         }
                                         callback();
                                     });
@@ -267,6 +296,7 @@ function minimoedns(request, response) {
                                         minimum: content[6],
                                         ttl: SOAresult[0].ttl||config.defaultTTL
                                     }));
+                                    response.header.rcode = consts.NAME_TO_RCODE.NOTFOUND;
                                     response.send();
                                 });
                             }
@@ -407,7 +437,7 @@ function minimoedns(request, response) {
                                         }));
                                     });
 
-                                    break;
+                                    return response.send();
                                 case 'CNAME':
                                     records = records.sort(randomOrder);
                                     records.forEach(function(record) {
@@ -420,8 +450,17 @@ function minimoedns(request, response) {
                                     });
                                     break;
                             }
-                            // console.log(response);
+
+                            // Send authority NS records.
+                            config.nameservers.forEach(function(ns) {
+                                response.authority.push(dns.NS({
+                                    name: tldname,
+                                    data: ns,
+                                    ttl: config.defaultTTL
+                                }));
+                            });
                             response.send();
+                            // console.log(response);
                         }
                     });
                 }
