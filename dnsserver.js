@@ -420,6 +420,7 @@ function minimoedns(request, response) {
                                      });
                                      });
                                      */
+                                    records = records.sort(randomOrder);
                                     records.forEach(function(record) {
                                         var ns = config.nameservers.indexOf(record.content);
                                         if (ns > -1) {
