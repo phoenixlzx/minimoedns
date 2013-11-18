@@ -84,7 +84,7 @@ function minimoedns(request, response) {
     var tldname = tld.getDomain(name);
 
     // EDNS options
-    if (request.edns_options[0].code === 8) {
+    if (request.edns_options[0]) {
         var tempip = request.edns_options[0].data.slice(4);
         sourceIP = tempip.toJSON().join('.');
         response.edns_options.push({
