@@ -35,7 +35,11 @@ UDPserver.serve(config.port);
 // TCP server
 if (config.enableTCP) {
     var TCPserver = dns.createTCPServer();
-    TCPserver.serve(config.port);
+    if (config.enableV6) {
+        TCPserver.serve(config.port, '::');
+    } else {
+        TCPserver.serve(config.port);
+    }
 }
 
 // IPv6
@@ -62,7 +66,8 @@ UDPserver6.on('error', function(err, buff, req, res) {
 TCPserver.on('error', function (err, buff, req, res) {
     console.log('TCP Server ERR:\n');
     console.log(err);
-})
+});
+
 
 // Functions
 function randomOrder() {
