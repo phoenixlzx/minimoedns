@@ -28,8 +28,13 @@ if (config.db === 'mongodb') {
 }
 
 // Start servers
-var UDPserver = dns.createServer();
+var UDPserver = dns.createServer({ dgram_type: 'udp4' });
 UDPserver.serve(config.port);
+
+if (config.enablev6) {
+    var UDPserver6 = dns.createUDPServer({ dgram_type: 'udp6' });
+    UDPserver6.serve(config.port);
+}
 
 // TCP server
 if (config.enableTCP) {
@@ -70,13 +75,31 @@ function authorityNS(res, queryName, callback) {
 
 function minimoedns(request, response) {
     // console.log(request);
+    // console.log(JSON.stringify(request.edns_options[0].data));
+    // console.log(request.edns_options[0].data.toJSON());
 
     var name = request.question[0].name,
         type = consts.qtypeToName(request.question[0].type),
         sourceIP = request.address.address;
     var tldname = tld.getDomain(name);
 
+    // EDNS options
+    if (request.edns_options[0].code === 8) {
+        var tempip = request.edns_options[0].data.slice(4);
+        sourceIP = tempip.toJSON().join('.');
+        response.edns_options.push({
+            code: 8,
+            data: request.edns_options[0].data
+        });
+        response.additional.push({
+            name: '',
+            type: 41,
+            rdlength: 8
+        });
+    }
+
     // Get source IP
+    // console.log(sourceIP);
     var sourceDest = country.lookupSync(sourceIP),
         sourceISP = isp.lookupSync(sourceIP);
     // console.log(sourceDest);
