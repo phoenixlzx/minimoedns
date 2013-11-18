@@ -136,7 +136,7 @@ function minimoedns(request, response) {
         // console.log(response);
         return response.send();
     }
-    
+
     Record.queryRecord(tldname, 'SOA', function(err, SOAresult) {
         if (err) {
             console.log(err);
@@ -185,11 +185,16 @@ function minimoedns(request, response) {
                             });
                             break;
                     }
-                        // Send authority NS records.
+                    // Send authority NS records.
                     config.nameservers.forEach(function(ns) {
                         response.authority.push(dns.NS({
                             name: tldname,
                             data: ns,
+                            ttl: config.defaultTTL
+                        }));
+                        response.additional.push(dns.A({
+                            name: ns,
+                            address: config.nameserversIP[config.nameservers.indexOf(ns)],
                             ttl: config.defaultTTL
                         }));
                     });
@@ -500,9 +505,14 @@ function minimoedns(request, response) {
                                     data: ns,
                                     ttl: config.defaultTTL
                                 }));
+                                response.additional.push(dns.A({
+                                    name: ns,
+                                    address: config.nameserversIP[config.nameservers.indexOf(ns)],
+                                    ttl: config.defaultTTL
+                                }));
                             });
                             response.send();
-                            console.log(response);
+                            // console.log(response);
                         }
                     });
                 }
