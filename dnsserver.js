@@ -11,8 +11,9 @@ var dns = require('native-dns'),
 var Record = '';
 
 // GeoIP setup
-var country = new geoip.Country(config.GeoDB);
-var isp = new geoip.Org(config.GeoISP);
+var country = new geoip.Country(config.GeoDB),
+    country_v6 = new geoip.Country6(config.GeoDB6),
+    isp = new geoip.Org(config.GeoISP);
 setInterval(function() {
     country.update(config.GeoDB);
     isp.update(config.GeoISP);
@@ -31,24 +32,31 @@ if (config.db === 'mongodb') {
 var UDPserver = dns.createServer({ dgram_type: 'udp4' });
 UDPserver.serve(config.port);
 
-if (config.enablev6) {
-    var UDPserver6 = dns.createUDPServer({ dgram_type: 'udp6' });
-    UDPserver6.serve(config.port);
-}
-
 // TCP server
 if (config.enableTCP) {
     var TCPserver = dns.createTCPServer();
     TCPserver.serve(config.port);
 }
+
+// IPv6
+if (config.enableV6) {
+    var UDPserver6 = dns.createUDPServer({ dgram_type: 'udp6' });
+    UDPserver6.serve(config.port);
+}
+
 console.log('DNS Server started at port ' + config.port + '.');
 
 // Query events...
 UDPserver.on('request', minimoedns);
+UDPserver6.on('request', minimoedns);
 TCPserver.on('request', minimoedns);
 
 UDPserver.on('error', function (err, buff, req, res) {
     console.log('UDP Server ERR:\n');
+    console.log(err);
+});
+UDPserver6.on('error', function(err, buff, req, res) {
+    console.log('UDP6 Server ERR:\n');
     console.log(err);
 });
 TCPserver.on('error', function (err, buff, req, res) {
@@ -102,6 +110,9 @@ function minimoedns(request, response) {
     // console.log(sourceIP);
     var sourceDest = country.lookupSync(sourceIP),
         sourceISP = isp.lookupSync(sourceIP);
+    if (!sourceDest) {
+        sourceDest = country_v6.lookupSync(sourceIP)
+    }
     // console.log(sourceDest);
     // console.log(sourceISP);
     console.log(sourceIP + ' requested ' + name);

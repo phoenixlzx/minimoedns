@@ -16,6 +16,9 @@ module.exports = {
     // enable TCP
     enableTCP: true,
 
+    // enable IPv6
+    enableV6: true,
+
     // DNS Settings
     port: 15353,
     defaultTTL: 3600,
@@ -25,5 +28,6 @@ module.exports = {
 
     // GeoIP configuration
     GeoDB: './GeoIP.dat',
+    GeoDB6: './GeoIPv6.dat',
     GeoISP: './GeoIPISP.dat'
 }
