@@ -136,6 +136,9 @@ function minimoedns(request, response) {
         // console.log(response);
         return response.send();
     }
+    if (request.header.rd === 0) {
+        response.header.rd = 0;
+    }
     Record.queryRecord(tldname, 'SOA', function(err, SOAresult) {
         if (err) {
             console.log(err);
@@ -144,6 +147,7 @@ function minimoedns(request, response) {
             response.send();
         } else {
             response.header.aa = name;
+
             Record.queryGeo(name, type, sourceDest, sourceISP, function(err, georecords) {
                 // console.log(georecords);
                 if (err) {
