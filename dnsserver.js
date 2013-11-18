@@ -136,9 +136,7 @@ function minimoedns(request, response) {
         // console.log(response);
         return response.send();
     }
-    if (request.header.rd === 0) {
-        response.header.rd = 0;
-    }
+    
     Record.queryRecord(tldname, 'SOA', function(err, SOAresult) {
         if (err) {
             console.log(err);
@@ -146,7 +144,7 @@ function minimoedns(request, response) {
             response.header.rcode = consts.NAME_TO_RCODE.NOTFOUND;
             response.send();
         } else {
-            response.header.aa = name;
+            response.header.aa = 1;
 
             Record.queryGeo(name, type, sourceDest, sourceISP, function(err, georecords) {
                 // console.log(georecords);
@@ -504,7 +502,7 @@ function minimoedns(request, response) {
                                 }));
                             });
                             response.send();
-                            // console.log(response);
+                            console.log(response);
                         }
                     });
                 }
