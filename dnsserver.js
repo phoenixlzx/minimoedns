@@ -8,6 +8,9 @@ var dns = require('native-dns'),
     async = require('async'),
     geoip = require('geoip');
 
+var cluster = require('cluster');
+var numCPUs = require('os').cpus().length;
+
 var Record = '';
 
 // GeoIP setup
@@ -16,58 +19,77 @@ var country = new geoip.Country(config.GeoDB),
     isp = new geoip.Org(config.GeoISP);
 setInterval(function() {
     country.update(config.GeoDB);
+    country_v6.update(config.GeoDB6);
     isp.update(config.GeoISP);
     // console.log('GeoIP Data updated.');
 }, 86400000);
 
 if (config.db === 'mongodb') {
-    Record = require('./record-mysql.js');
+    Record = require('./record-mongodb.js');
 } else if (config.db === 'mysql') {
     Record = require('./record-mysql.js');
 } else {
     return console.log('Incorrect database selection.');
 }
 
+if (cluster.isMaster) {
+    console.log("Starting master process...");
+
+    // Fork workers.
+    for (var i = 0; i < numCPUs; i++) {
+        cluster.fork();
+    }
+/*
+    cluster.on('listening', function(worker, address){
+        console.log('listening: worker ' + worker.process.pid + ', Address: ' + address.address + ":" + address.port);
+    });
+
+    cluster.on('exit', function(worker, code, signal) {
+        console.log('worker ' + worker.process.pid + ' exited.');
+    });*/
+} else {
+
 // Start servers
-var UDPserver = dns.createServer({ dgram_type: 'udp4' });
-UDPserver.serve(config.port);
+    var UDPserver = dns.createServer({ dgram_type: 'udp4' });
+    UDPserver.serve(config.port);
 
 // TCP server
-if (config.enableTCP) {
-    var TCPserver = dns.createTCPServer();
-    if (config.enableV6) {
-        TCPserver.serve(config.port, '::');
-    } else {
-        TCPserver.serve(config.port);
+    if (config.enableTCP) {
+        var TCPserver = dns.createTCPServer();
+        if (config.enableV6) {
+            TCPserver.serve(config.port, '::');
+        } else {
+            TCPserver.serve(config.port);
+        }
     }
-}
 
 // IPv6
-if (config.enableV6) {
-    var UDPserver6 = dns.createUDPServer({ dgram_type: 'udp6' });
-    UDPserver6.serve(config.port);
-}
+    if (config.enableV6) {
+        var UDPserver6 = dns.createUDPServer({ dgram_type: 'udp6' });
+        UDPserver6.serve(config.port);
+    }
 
-console.log('DNS Server started at port ' + config.port + '.');
+    console.log('DNS Server started at port ' + config.port + '.');
 
 // Query events...
-UDPserver.on('request', minimoedns);
-UDPserver6.on('request', minimoedns);
-TCPserver.on('request', minimoedns);
+    UDPserver.on('request', minimoedns);
+    UDPserver6.on('request', minimoedns);
+    TCPserver.on('request', minimoedns);
 
-UDPserver.on('error', function (err, buff, req, res) {
-    console.log('UDP Server ERR:\n');
-    console.log(err);
-});
-UDPserver6.on('error', function(err, buff, req, res) {
-    console.log('UDP6 Server ERR:\n');
-    console.log(err);
-});
-TCPserver.on('error', function (err, buff, req, res) {
-    console.log('TCP Server ERR:\n');
-    console.log(err);
-});
+    UDPserver.on('error', function (err, buff, req, res) {
+        console.log('UDP Server ERR:\n');
+        console.log(err);
+    });
+    UDPserver6.on('error', function(err, buff, req, res) {
+        console.log('UDP6 Server ERR:\n');
+        console.log(err);
+    });
+    TCPserver.on('error', function (err, buff, req, res) {
+        console.log('TCP Server ERR:\n');
+        console.log(err);
+    });
 
+}
 
 // Functions
 function randomOrder() {
@@ -89,7 +111,7 @@ function authorityNS(res, queryName, callback) {
 function minimoedns(request, response) {
     // console.log(request);
     // console.log(JSON.stringify(request.edns_options[0].data));
-    // console.log(request.edns_options[0].data.toJSON());
+    // console.log(request.edns_options[0].data);
 
     var name = request.question[0].name,
         type = consts.qtypeToName(request.question[0].type),
@@ -97,13 +119,12 @@ function minimoedns(request, response) {
     var tldname = tld.getDomain(name);
 
     // EDNS options
+    // TODO IPv6 support.
     if (request.edns_options[0]) {
         var tempip = request.edns_options[0].data.slice(4);
         sourceIP = tempip.toJSON().join('.');
-        response.edns_options.push({
-            code: 8,
-            data: request.edns_options[0].data
-        });
+        // console.log(sourceIP);
+        response.edns_options.push(request.edns_options[0]);
         response.additional.push({
             name: '',
             type: 41,

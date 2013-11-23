@@ -20,15 +20,14 @@ if (!config.mysqlsocket) {
     });
 }
 
-
 pool.getConnection(function(err, connection) {
     if (err) {
-        console.log(err.stack);
+        console.log(err);
         pool.releaseConnection();
     }
 
     // Ping database for every 1 hour as it may close connection while idle.
-    setInterval(keepAlive, 300000);
+    setInterval(keepAlive, 600);
 
     exports.queryRecord = function(name, type, callback) {
         connection.query('SELECT * from `records` WHERE `name` = ? AND (`type` = ? OR `type` = "CNAME") AND `geo` IS NULL',
@@ -43,8 +42,8 @@ pool.getConnection(function(err, connection) {
                     connection.release();
                     callback(null, result);
                 } else {
-                    connection.query('SELECT * from `records` WHERE `name` = ? AND (`type` = ? OR `type` = "CNAME")', 
-                        [name, type], 
+                    connection.query('SELECT * from `records` WHERE `name` = ? AND (`type` = ? OR `type` = "CNAME")',
+                        [name, type],
                         function(err, result2) {
                             if (err) {
                                 connection.release();
@@ -54,8 +53,8 @@ pool.getConnection(function(err, connection) {
                             callback(null, result2);
                         });
                 }
-                
-        });
+
+            });
     }
 
     exports.queryGeo = function(name, type, dest, isp, callback) {
@@ -84,14 +83,43 @@ pool.getConnection(function(err, connection) {
                             callback(null, result2);
                         });
                 }
-        });
+            });
     }
 
     function keepAlive() {
-        connection.query('select 1', [], function(err, result) {
+        connection.query('SELECT 1', [], function(err, result) {
             if(err) return console.log(err);
-            // Successul keepalive
+            connection.release();
+            // console.log(result);
+
+            setTimeout(function() {
+                if (!result) {
+                    console.log('ERR: Database connection seems lost...');
+                    throw new Error('Database connection lost');
+                }
+            }, 100)
         });
     }
+// WTF pooling never re-connect...
+/*
+    function handleError () {
 
+        connection.query('SELECT 1', function (err) {
+            if (err) {
+                console.log('error when connecting to db:', err);
+                setTimeout(handleError , 2000);
+            }
+        });
+
+        connection.on('error', function (err) {
+            console.log('db error', err);
+            if (err.code === 'PROTOCOL_CONNECTION_LOST') {
+                handleError();
+            } else {
+                throw err;
+            }
+        });
+    }
+    handleError();
+*/
 });

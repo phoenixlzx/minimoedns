@@ -1,8 +1,8 @@
 module.exports = {
 
     // Database settings
-    // Select Database to use. available: mongodb, mysql.
-    db: 'mongodb',
+    // Select Database to use. available: mongodb, mysql. (Mongodb currently not usable.)
+    db: 'mysql',
 
     // MongoDB Settings
     mongodb: 'mongodb://127.0.0.1/minimoedns',
