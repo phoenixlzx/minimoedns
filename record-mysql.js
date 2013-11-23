@@ -27,7 +27,7 @@ pool.getConnection(function(err, connection) {
     }
 
     // Ping database for every 1 hour as it may close connection while idle.
-    setInterval(keepAlive, 600);
+    setInterval(keepAlive, 3600000);
 
     exports.queryRecord = function(name, type, callback) {
         connection.query('SELECT * from `records` WHERE `name` = ? AND (`type` = ? OR `type` = "CNAME") AND `geo` IS NULL',
