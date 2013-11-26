@@ -30,7 +30,7 @@ pool.getConnection(function(err, connection) {
     setInterval(keepAlive, 3600000);
 
     exports.queryRecord = function(name, type, callback) {
-        connection.query('SELECT * from `records` WHERE `paused` IS FALSE AND `name` = ? AND (`type` = ? OR `type` = "CNAME") AND `geo` IS NULL',
+        connection.query('SELECT * from `records` WHERE `paused` IS NOT TRUE AND `name` = ? AND (`type` = ? OR `type` = "CNAME") AND `geo` IS NULL',
             [name, type],
             function(err, result) {
                 if (err) {
@@ -42,7 +42,7 @@ pool.getConnection(function(err, connection) {
                     connection.release();
                     callback(null, result);
                 } else {
-                    connection.query('SELECT * from `records` WHERE `paused` IS FALSE AND `name` = ? AND (`type` = ? OR `type` = "CNAME")',
+                    connection.query('SELECT * from `records` WHERE `paused` IS NOT TRUE AND `name` = ? AND (`type` = ? OR `type` = "CNAME")',
                         [name, type],
                         function(err, result2) {
                             if (err) {
