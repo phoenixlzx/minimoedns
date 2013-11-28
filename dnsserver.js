@@ -99,7 +99,7 @@ function randomOrder() {
 function authorityNS(res, queryName, callback) {
     // Send authority NS records.
     config.nameservers.forEach(function(ns) {
-        response.authority.push(dns.NS({
+        res.authority.push(dns.NS({
             name: queryName,
             data: ns,
             ttl: config.defaultTTL
@@ -109,7 +109,7 @@ function authorityNS(res, queryName, callback) {
 }
 
 function minimoedns(request, response) {
-    // console.log(request);
+    console.log(request);
     // console.log(JSON.stringify(request.edns_options[0].data));
     // console.log(request.edns_options[0].data);
 
@@ -526,11 +526,13 @@ function minimoedns(request, response) {
                                     data: ns,
                                     ttl: config.defaultTTL
                                 }));
+                                /*
                                 response.additional.push(dns.A({
                                     name: ns,
                                     address: config.nameserversIP[config.nameservers.indexOf(ns)],
                                     ttl: config.defaultTTL
                                 }));
+                            */
                             });
                             response.send();
                             // console.log(response);
