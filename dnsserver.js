@@ -135,7 +135,6 @@ function minimoedns(request, response) {
         } else if (request.edns_options[0].data.toJSON()[2] === 128) {
             // client is IPv6
             // TODO implement IPv6 edns_options
-            continue;
         }
 
     }
