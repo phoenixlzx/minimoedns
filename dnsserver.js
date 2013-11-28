@@ -122,14 +122,22 @@ function minimoedns(request, response) {
     // TODO IPv6 support.
     if (request.edns_options[0]) {
         var tempip = request.edns_options[0].data.slice(4);
-        sourceIP = tempip.toJSON().join('.');
-        // console.log(sourceIP);
-        response.edns_options.push(request.edns_options[0]);
-        response.additional.push({
-            name: '',
-            type: 41,
-            rdlength: 8
-        });
+        if (request.edns_options[0].data.toJSON()[2] === 32) {
+            // client is IPv4
+            sourceIP = tempip.toJSON().join('.');
+                    // console.log(sourceIP);
+            response.edns_options.push(request.edns_options[0]);
+            response.additional.push({
+                name: '',
+                type: 41,
+                rdlength: 8
+            });
+        } else if (request.edns_options[0].data.toJSON()[2] === 128) {
+            // client is IPv6
+            // TODO implement IPv6 edns_options
+            continue;
+        }
+
     }
 
     // Get source IP
@@ -213,11 +221,13 @@ function minimoedns(request, response) {
                             data: ns,
                             ttl: config.defaultTTL
                         }));
+                        /* 
                         response.additional.push(dns.A({
                             name: ns,
                             address: config.nameserversIP[config.nameservers.indexOf(ns)],
                             ttl: config.defaultTTL
                         }));
+                        */
                     });
                     return response.send();
                 } else {
@@ -489,6 +499,7 @@ function minimoedns(request, response) {
                                      */
                                     records = records.sort(randomOrder);
                                     records.forEach(function(record) {
+                                        /* 
                                         var ns = config.nameservers.indexOf(record.content);
                                         if (ns > -1) {
                                             // we are authoerity server, sending additional information...
@@ -497,7 +508,8 @@ function minimoedns(request, response) {
                                                 address: config.nameserversIP[ns],
                                                 ttl: config.defaultTTL
                                             }));
-                                        }
+                                        } 
+                                        */
                                         response.answer.push(dns.NS({
                                             name: record.name,
                                             data: record.content,
@@ -532,7 +544,7 @@ function minimoedns(request, response) {
                                     address: config.nameserversIP[config.nameservers.indexOf(ns)],
                                     ttl: config.defaultTTL
                                 }));
-                            */
+                                */
                             });
                             response.send();
                             // console.log(response);
