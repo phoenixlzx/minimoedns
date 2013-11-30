@@ -91,13 +91,14 @@ pool.getConnection(function(err, connection) {
             if(err) return console.log(err);
             connection.release();
             // console.log(result);
-
+/*
             setTimeout(function() {
                 if (!result) {
                     console.log('ERR: Database connection seems lost...');
                     throw new Error('Database connection lost');
                 }
             }, 100)
+*/
         });
     }
 // WTF pooling never re-connect...

@@ -17,12 +17,14 @@ var Record = '';
 var country = new geoip.Country(config.GeoDB),
     country_v6 = new geoip.Country6(config.GeoDB6),
     isp = new geoip.Org(config.GeoISP);
+/*
 setInterval(function() {
     country.update(config.GeoDB);
     country_v6.update(config.GeoDB6);
     isp.update(config.GeoISP);
     // console.log('GeoIP Data updated.');
 }, 86400000);
+*/
 
 if (config.db === 'mongodb') {
     Record = require('./record-mongodb.js');
