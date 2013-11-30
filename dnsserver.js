@@ -95,7 +95,7 @@ if (cluster.isMaster) {
 
 // Functions
 function randomOrder() {
-    return (Math.round(Math.random()) - 0.52);
+    return (Math.round(Math.random()) - 0.5);
 }
 
 function authorityNS(res, queryName, callback) {
@@ -111,7 +111,7 @@ function authorityNS(res, queryName, callback) {
 }
 
 function minimoedns(request, response) {
-    console.log(request);
+    // console.log(request);
     // console.log(JSON.stringify(request.edns_options[0].data));
     // console.log(request.edns_options[0].data);
 
