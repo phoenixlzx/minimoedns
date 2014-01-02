@@ -111,8 +111,8 @@ function authorityNS(res, queryName, callback) {
 }
 
 function minimoedns(request, response) {
-    // console.log(request);
-    // console.log(JSON.stringify(request.edns_options[0].data));
+    console.log(request);
+    console.log(JSON.stringify(request.edns_options[0].data));
     // console.log(request.edns_options[0].data);
 
     var name = request.question[0].name,
@@ -124,10 +124,17 @@ function minimoedns(request, response) {
     // TODO IPv6 support.
     if (request.edns_options[0]) {
         var tempip = request.edns_options[0].data.slice(4);
-        if (request.edns_options[0].data.toJSON()[2] === 32) {
+        console.log(JSON.stringify(tempip))
+        if (request.edns_options[0].data.toJSON()[2] <= 32) {
             // client is IPv4
-            sourceIP = tempip.toJSON().join('.');
-                    // console.log(sourceIP);
+            tempip = tempip.toJSON().join('.');
+            if (request.edns_options[0].data.toJSON()[2] < 24) {
+                for (var i = request.edns_options[0].data.toJSON()[2]; i < 24; i += 8) {
+                    tempip += '.0';
+                }
+            }
+            sourceIP = tempip;
+            console.log(sourceIP);
             response.edns_options.push(request.edns_options[0]);
             response.additional.push({
                 name: '',
