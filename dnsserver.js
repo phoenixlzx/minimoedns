@@ -174,7 +174,7 @@ function minimoedns(request, response) {
         return response.send();
     }
 
-    Record.queryRecord(tldname, 'SOA', function(err, SOAresult) {
+    Record.querySOA(tldname, function(err, SOAresult) {
         if (err) {
             console.log(err);
         } else if (!SOAresult[0]) {
