@@ -123,9 +123,10 @@ function minimoedns(request, response) {
     // EDNS options
     // TODO IPv6 support.
     if (request.edns_options[0]) {
+        // response.edns_version = request.edns_version;
         var tempip = request.edns_options[0].data.slice(4);
         // console.log(JSON.stringify(tempip))
-        if (request.edns_options[0].data.toJSON()[2] <= 32) {
+        if (request.edns_options[0].data.toJSON()[1] === 1) {
             // client is IPv4
             tempip = tempip.toJSON().join('.');
             if (request.edns_options[0].data.toJSON()[2] < 24) {
@@ -134,11 +135,12 @@ function minimoedns(request, response) {
                 }
             }
             sourceIP = tempip;
-            console.log(sourceIP);
+            // console.log(sourceIP);
             response.edns_options.push(request.edns_options[0]);
             response.additional.push({
                 name: '',
                 type: 41,
+                class: 4096,
                 rdlength: 8
             });
         } else if (request.edns_options[0].data.toJSON()[2] === 128) {
@@ -554,8 +556,8 @@ function minimoedns(request, response) {
                                 }));
                                 */
                             });
-                            response.send();
                             // console.log(response);
+                            response.send();
                         }
                     });
                 }
