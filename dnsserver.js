@@ -389,18 +389,22 @@ function minimoedns(request, response) {
                             }
 
                         } else {
+                            var res = [];
                             if (records.length > 1) {
-                                for (var i = 1; i <= records.length; i++) {
-                                    if (records[i].type === type) {
-                                        records[0] = records[i];
+                                for (var i = 1; i < records.length; i++) {
+                                    if (records[i].type === consts.qtypeToName(request.question[0].type)) {
+                                        res.push(records[i]);
                                     }
                                 }
+                            } else {
+                                res.push(records[0]);
                             }
-                            switch (records[0].type) {
+                            // console.log(res)
+                            switch (res[0].type) {
                                 case 'SOA':
-                                    var content = records[0].content.split(" ");
+                                    var content = res[0].content.split(" ");
                                     response.answer.push(dns.SOA({
-                                        name: records[0].name,
+                                        name: res[0].name,
                                         primary: content[0],
                                         admin: content[1].replace("@", "."),
                                         serial: content[2],
@@ -408,12 +412,12 @@ function minimoedns(request, response) {
                                         retry: content[4],
                                         expiration: content[5],
                                         minimum: content[6],
-                                        ttl: records[0].ttl||config.defaultTTL
+                                        ttl: res[0].ttl||config.defaultTTL
                                     }));
                                     break;
                                 case 'A':
-                                    records = records.sort(randomOrder);
-                                    records.forEach(function(record) {
+                                    res = res.sort(randomOrder);
+                                    res.forEach(function(record) {
                                         response.answer.push(dns.A({
                                             name: record.name,
                                             address: record.content,
@@ -422,8 +426,8 @@ function minimoedns(request, response) {
                                     });
                                     break;
                                 case 'AAAA':
-                                    records = records.sort(randomOrder);
-                                    records.forEach(function(record) {
+                                    res = res.sort(randomOrder);
+                                    res.forEach(function(record) {
                                         response.answer.push(dns.AAAA({
                                             name: record.name,
                                             address: record.content,
@@ -432,8 +436,8 @@ function minimoedns(request, response) {
                                     });
                                     break;
                                 case 'MX':
-                                    records = records.sort(randomOrder);
-                                    records.forEach(function(record) {
+                                    res = res.sort(randomOrder);
+                                    res.forEach(function(record) {
                                         response.answer.push(dns.MX({
                                             name: record.name,
                                             priority: record.prio,
@@ -443,7 +447,7 @@ function minimoedns(request, response) {
                                     });
                                     break;
                                 case 'TXT':
-                                    records.forEach(function(record) {
+                                    res.forEach(function(record) {
                                         response.answer.push(dns.TXT({
                                             name: record.name,
                                             data: record.content,
@@ -452,7 +456,7 @@ function minimoedns(request, response) {
                                     });
                                     break;
                                 case 'SRV':
-                                    records.forEach(function(record) {
+                                    res.forEach(function(record) {
                                         var content = record.content.split(" ");
                                         response.answer.push(dns.SRV({
                                             name: record.name,
@@ -514,8 +518,8 @@ function minimoedns(request, response) {
                                      });
                                      });
                                      */
-                                    records = records.sort(randomOrder);
-                                    records.forEach(function(record) {
+                                    res = res.sort(randomOrder);
+                                    res.forEach(function(record) {
                                         /* 
                                         var ns = config.nameservers.indexOf(record.content);
                                         if (ns > -1) {
@@ -536,14 +540,13 @@ function minimoedns(request, response) {
 
                                     return response.send();
                                 case 'CNAME':
-                                    records = records.sort(randomOrder);
-                                    records.forEach(function(record) {
+                                    res = res.sort(randomOrder);
+                                    res.forEach(function(record) {
                                         response.answer.push(dns.CNAME({
                                             name: record.name,
                                             data: record.content,
                                             ttl: record.ttl||config.defaultTTL
                                         }));
-
                                     });
                                     break;
                             }
@@ -572,3 +575,4 @@ function minimoedns(request, response) {
         }
     });
 }
+
