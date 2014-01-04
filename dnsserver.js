@@ -390,14 +390,10 @@ function minimoedns(request, response) {
 
                         } else {
                             var res = [];
-                            if (records.length > 1) {
-                                for (var i = 1; i < records.length; i++) {
-                                    if (records[i].type === consts.qtypeToName(request.question[0].type)) {
-                                        res.push(records[i]);
-                                    }
+                            for (var i = 0; i < records.length; i++) {
+                                if (records[i].type === consts.qtypeToName(request.question[0].type)) {
+                                    res.push(records[i]);
                                 }
-                            } else {
-                                res.push(records[0]);
                             }
                             // console.log(res)
                             switch (res[0].type) {
