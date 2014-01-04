@@ -395,6 +395,9 @@ function minimoedns(request, response) {
                                     res.push(records[i]);
                                 }
                             }
+                            if (!res[0]) {
+                                res = records;
+                            }
                             // console.log(res)
                             switch (res[0].type) {
                                 case 'SOA':
