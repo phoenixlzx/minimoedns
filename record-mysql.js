@@ -108,3 +108,63 @@ exports.querySOA = function(name, callback) {
             });
     });
 }
+
+exports.queryNS = function(name, callback) {
+    pool.getConnection(function(err, connection) {
+        if (err) {
+            console.log(err.message);
+        }
+        connection.query('SELECT * from `records` WHERE `paused` IS NOT TRUE AND `name` = ? AND (`type` = "NS")',
+            name,
+            function(err, result) {
+                if (err) {
+                    connection.release();
+                    return callback(err, null);
+                }
+
+                connection.release();
+                callback(null, result);
+
+            });
+    });
+}
+
+exports.querySRV = function(name, callback) {
+    pool.getConnection(function(err, connection) {
+        if (err) {
+            console.log(err.message);
+        }
+        connection.query('SELECT * from `records` WHERE `paused` IS NOT TRUE AND `name` = ? AND (`type` = "SRV")',
+            name,
+            function(err, result) {
+                if (err) {
+                    connection.release();
+                    return callback(err, null);
+                }
+
+                connection.release();
+                callback(null, result);
+
+            });
+    });
+}
+
+exports.queryTXT = function(name, callback) {
+    pool.getConnection(function(err, connection) {
+        if (err) {
+            console.log(err.message);
+        }
+        connection.query('SELECT * from `records` WHERE `paused` IS NOT TRUE AND `name` = ? AND (`type` = "TXT")',
+            name,
+            function(err, result) {
+                if (err) {
+                    connection.release();
+                    return callback(err, null);
+                }
+
+                connection.release();
+                callback(null, result);
+
+            });
+    });
+}

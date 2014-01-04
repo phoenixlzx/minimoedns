@@ -159,7 +159,7 @@ function minimoedns(request, response) {
     }
     // console.log(sourceDest);
     // console.log(sourceISP);
-    console.log(sourceIP + ' requested ' + name);
+    console.log(sourceIP + ' requested ' + name + ' for ' + type);
     if (!tld.isValid(name)) {
         response.header.rcode = consts.NAME_TO_RCODE.NOTFOUND;
         return response.send();
@@ -389,6 +389,13 @@ function minimoedns(request, response) {
                             }
 
                         } else {
+                            if (records.length > 1) {
+                                for (var i = 1; i <= records.length; i++) {
+                                    if (records[i].type === type) {
+                                        records[0] = records[i];
+                                    }
+                                }
+                            }
                             switch (records[0].type) {
                                 case 'SOA':
                                     var content = records[0].content.split(" ");
