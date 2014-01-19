@@ -21,11 +21,14 @@ if (!config.mysqlsocket) {
     });
 }
 
+
+
 exports.queryRecord = function(name, type, callback) {
     pool.getConnection(function(err, connection) {
         if (err) {
-            console.log(err.message);
+            return console.log(err.message);
         }
+
         connection.query('SELECT * from `records` WHERE `paused` IS NOT TRUE AND `name` = ? AND (`type` = ? OR `type` = "CNAME") AND `geo` IS NULL',
             [name, type],
             function(err, result) {
@@ -49,7 +52,6 @@ exports.queryRecord = function(name, type, callback) {
                             callback(null, result2);
                         });
                 }
-
             });
     });
 }
@@ -129,6 +131,86 @@ exports.queryNS = function(name, callback) {
     });
 }
 
+exports.queryA = function(name, callback) {
+    pool.getConnection(function(err, connection) {
+        if (err) {
+            console.log(err.message);
+        }
+        connection.query('SELECT * from `records` WHERE `paused` IS NOT TRUE AND `name` = ? AND (`type` = "A" OR `type` = "CNAME")',
+            name,
+            function(err, result) {
+                if (err) {
+                    connection.release();
+                    return callback(err, null);
+                }
+
+                connection.release();
+                callback(null, result);
+
+            });
+    });
+}
+
+exports.queryAAAA = function(name, callback) {
+    pool.getConnection(function(err, connection) {
+        if (err) {
+            console.log(err.message);
+        }
+        connection.query('SELECT * from `records` WHERE `paused` IS NOT TRUE AND `name` = ? AND (`type` = "AAAA" OR `type` = "CNAME")',
+            name,
+            function(err, result) {
+                if (err) {
+                    connection.release();
+                    return callback(err, null);
+                }
+
+                connection.release();
+                callback(null, result);
+
+            });
+    });
+}
+
+exports.queryCNAME = function(name, callback) {
+    pool.getConnection(function(err, connection) {
+        if (err) {
+            console.log(err.message);
+        }
+        connection.query('SELECT * from `records` WHERE `paused` IS NOT TRUE AND `name` = ? AND (`type` = "CNAME")',
+            name,
+            function(err, result) {
+                if (err) {
+                    connection.release();
+                    return callback(err, null);
+                }
+
+                connection.release();
+                callback(null, result);
+            });
+    });
+}
+
+exports.queryMX = function(name, callback) {
+    pool.getConnection(function(err, connection) {
+        if (err) {
+            console.log(err.message);
+        }
+        connection.query('SELECT * from `records` WHERE `paused` IS NOT TRUE AND `name` = ? AND (`type` = "MX")',
+            name,
+            function(err, result) {
+                if (err) {
+                    connection.release();
+                    return callback(err, null);
+                }
+
+                connection.release();
+                callback(null, result);
+
+            });
+    });
+};
+
+
 exports.querySRV = function(name, callback) {
     pool.getConnection(function(err, connection) {
         if (err) {
@@ -164,7 +246,6 @@ exports.queryTXT = function(name, callback) {
 
                 connection.release();
                 callback(null, result);
-
             });
     });
 }

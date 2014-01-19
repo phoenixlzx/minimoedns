@@ -110,6 +110,23 @@ function authorityNS(res, queryName, callback) {
     callback();
 }
 
+function notfound(res, SOA) {
+    var content = SOA[0].content.split(" ");
+    res.authority.push(dns.SOA({
+        name: SOA[0].name,
+        primary: content[0],
+        admin: content[1].replace("@", "."),
+        serial: content[2],
+        refresh: content[3],
+        retry: content[4],
+        expiration: content[5],
+        minimum: content[6],
+        ttl: SOA[0].ttl||config.defaultTTL
+    }));
+    res.header.rcode = consts.NAME_TO_RCODE.NOTFOUND;
+    return res.send();
+}
+
 function minimoedns(request, response) {
     // console.log(request);
     // console.log(JSON.stringify(request.edns_options[0].data));
@@ -143,11 +160,11 @@ function minimoedns(request, response) {
                 class: 4096,
                 rdlength: 8
             });
+            callback(response);
         } else if (request.edns_options[0].data.toJSON()[2] === 128) {
             // client is IPv6
             // TODO implement IPv6 edns_options
         }
-
     }
 
     // Get source IP
@@ -159,11 +176,14 @@ function minimoedns(request, response) {
     }
     // console.log(sourceDest);
     // console.log(sourceISP);
-    console.log(sourceIP + ' requested ' + name + ' for ' + type);
+
     if (!tld.isValid(name)) {
         response.header.rcode = consts.NAME_TO_RCODE.NOTFOUND;
         return response.send();
     }
+
+    console.log(sourceIP + ' requested ' + name + ' for ' + type);
+
     // return version if quested version.bind
     if (name === 'version.bind' && type === 'TXT') {
         response.answer.push(dns.TXT({
@@ -184,37 +204,286 @@ function minimoedns(request, response) {
             response.send();
         } else {
             response.header.aa = 1;
-
-            Record.queryGeo(name, type, sourceDest, sourceISP, function(err, georecords) {
-                // console.log(georecords);
-                if (err) {
-                    console.log(err);
-                }
-                if (georecords[0]) {
-                    // console.log(georecords);
-                    // console.log('GeoDNS Record(s) found, sending optimized records...');
-                    switch (georecords[0].type) {
-                        case 'A':
-                            georecords = georecords.sort(randomOrder);
-                            georecords.forEach(function(record) {
-                                response.answer.push(dns.A({
+            switch (type) {
+                case "SOA":
+                    var content = SOAresult[0].content.split(" ");
+                    response.answer.push(dns.SOA({
+                        name: SOAresult[0].name,
+                        primary: content[0],
+                        admin: content[1].replace("@", "."),
+                        serial: content[2],
+                        refresh: content[3],
+                        retry: content[4],
+                        expiration: content[5],
+                        minimum: content[6],
+                        ttl: SOAresult[0].ttl||config.defaultTTL
+                    }));
+                    authorityNS(response, tldname, function() {
+                        response.send();
+                    });
+                    break;
+                case "NS":
+                    Record.queryNS(name, function(err, res) {
+                        if (err) {
+                            return console.log('MiniMoeDNS ERR:\n' + err + '\n');
+                        }
+                        if (res[0]) {
+                            res = res.sort(randomOrder);
+                            res.forEach(function(record) {
+                                response.answer.push(dns.NS({
                                     name: record.name,
-                                    address: record.content,
+                                    data: record.content,
                                     ttl: record.ttl||config.defaultTTL
                                 }));
                             });
-                            break;
-                        case 'AAAA':
+                            authorityNS(response, tldname, function() {
+                                return response.send();
+                            });
+                        } else {
+                            notfound(response, SOAresult);
+                        }
+                    });
+                    break;
+                case "A":
+                    // GeoDNS for A record is supported. Processing with edns-client-subnet support
+                    Record.queryGeo(name, type, sourceDest, sourceISP, function(err, georecords) {
+                        // console.log(georecords);
+                        if (err) {
+                            console.log(err);
+                        }
+                        if (georecords[0]) {
+                            // Geo Records found, sending optimized responses..
                             georecords = georecords.sort(randomOrder);
                             georecords.forEach(function(record) {
-                                response.answer.push(dns.AAAA({
-                                    name: record.name,
-                                    address: record.content,
-                                    ttl: record.ttl||config.defaultTTL
-                                }));
+                                switch (record.type) {
+                                    case "A":
+                                        response.answer.push(dns.A({
+                                            name: record.name,
+                                            address: record.content,
+                                            ttl: record.ttl||config.defaultTTL
+                                        }));
+                                        break;
+                                    case "CNAME":
+                                        response.answer.push(dns.CNAME({
+                                            name: record.name,
+                                            data: record.content,
+                                            ttl: record.ttl||config.defaultTTL
+                                        }));
+                                        break;
+                                }
                             });
-                            break;
-                        case 'CNAME':
+                            authorityNS(response, tldname, function() {
+                                return response.send();
+                            });
+                        } else {
+                            // Geo record not found, sending all available records...
+                            Record.queryA(name, function(err, result) {
+                                if (err) {
+                                    return console.log('MiniMoeDNS ERR:\n' + err + '\n');
+                                }
+                                // console.log(result);
+                                if (result[0]) {
+                                    result = result.sort(randomOrder);
+                                    result.forEach(function(record) {
+                                        switch (record.type) {
+                                            case "A":
+                                                response.answer.push(dns.A({
+                                                    name: record.name,
+                                                    address: record.content,
+                                                    ttl: record.ttl||config.defaultTTL
+                                                }));
+                                                break;
+                                            case "CNAME":
+                                                response.answer.push(dns.CNAME({
+                                                    name: record.name,
+                                                    data: record.content,
+                                                    ttl: record.ttl||config.defaultTTL
+                                                }));
+                                                break;
+                                        }
+                                    });
+                                    authorityNS(response, tldname, function() {
+                                        return response.send();
+                                    });
+                                } else {
+                                    // Current querying name not found, trying if its wildcard.
+                                    var sub = tld.getSubdomain(name);
+                                    // var pattern = new RegExp(/\./);
+                                    if (sub == '') {
+                                        notfound(response, SOAresult);
+                                    } else  {
+                                        var queryName = name;
+                                        async.until(function() {
+                                            return !tld.getSubdomain(queryName);
+                                        }, function(callback) {
+                                            queryName = queryName.substr(queryName.indexOf('.') + 1);
+                                            // console.log(queryName);
+                                            Record.queryA('*.' + queryName, function(err, doc) {
+                                                // console.log(doc)
+                                                if (err) {
+                                                    console.log(err);
+                                                }
+                                                if (doc[0]) {
+                                                    doc = doc.sort(randomOrder);
+                                                    doc.forEach(function(docResult) {
+                                                        switch (docResult.type) {
+                                                            case "A":
+                                                                response.answer.push(dns.A({
+                                                                    name: name,
+                                                                    address: docResult.content,
+                                                                    ttl: docResult.ttl||config.defaultTTL
+                                                                }));
+                                                                break;
+                                                            case "CNAME":
+                                                                response.answer.push(dns.CNAME({
+                                                                    name: name,
+                                                                    data: docResult.content,
+                                                                    ttl: docResult.ttl||config.defaultTTL
+                                                                }));
+                                                                break;
+                                                        }
+                                                    });
+                                                    authorityNS(response, tldname, function() {
+                                                        return response.send();
+                                                    });
+                                                }
+                                                callback();
+                                            });
+                                        }, function() {
+                                            // Nothing found, sending NXDOMAIN
+                                            notfound(response, SOAresult);
+                                        });
+                                    }
+                                }
+                            });
+                        }
+                    });
+                    break;
+                case "AAAA":
+                    // GeoDNS for AAAA record is supported. Processing WITHOUT edns-client-subnet support
+                    Record.queryGeo(name, type, sourceDest, sourceISP, function(err, georecords) {
+                        // console.log(georecords);
+                        if (err) {
+                            console.log(err);
+                        }
+                        if (georecords[0]) {
+                            // Geo Records found, sending optimized responses..
+                            georecords = georecords.sort(randomOrder);
+                            georecords.forEach(function(record) {
+                                switch (record.type) {
+                                    case "AAAA":
+                                        response.answer.push(dns.AAAA({
+                                            name: record.name,
+                                            address: record.content,
+                                            ttl: record.ttl||config.defaultTTL
+                                        }));
+                                        break;
+                                    case "CNAME":
+                                        response.answer.push(dns.CNAME({
+                                            name: record.name,
+                                            data: record.content,
+                                            ttl: record.ttl||config.defaultTTL
+                                        }));
+                                        break;
+                                }
+                            });
+                            authorityNS(response, tldname, function() {
+                                return response.send();
+                            });
+                        } else {
+                            // Geo record not found, sending all available records...
+                            Record.queryAAAA(name, function(err, result) {
+                                if (err) {
+                                    return console.log('MiniMoeDNS ERR:\n' + err + '\n');
+                                }
+                                if (result[0]) {
+                                    result = result.sort(randomOrder);
+                                    result.forEach(function(record) {
+                                        switch (record.type) {
+                                            case "AAAA":
+                                                response.answer.push(dns.AAAA({
+                                                    name: record.name,
+                                                    address: record.content,
+                                                    ttl: record.ttl||config.defaultTTL
+                                                }));
+                                                break;
+                                            case "CNAME":
+                                                response.answer.push(dns.CNAME({
+                                                    name: record.name,
+                                                    data: record.content,
+                                                    ttl: record.ttl||config.defaultTTL
+                                                }));
+                                                break;
+                                        }
+                                    });
+                                    authorityNS(response, tldname, function() {
+                                        return response.send();
+                                    });
+                                } else {
+                                    // Current querying name not found, trying if its wildcard.
+                                    var sub = tld.getSubdomain(name);
+                                    // var pattern = new RegExp(/\./);
+                                    if (sub == '') {
+                                        // directly send SOA as we queried before.
+                                        notfound(response, SOAresult);
+                                    } else  {
+                                        var queryName = name;
+                                        async.until(function() {
+                                            return !tld.getSubdomain(queryName);
+                                        }, function(callback) {
+                                            queryName = queryName.substr(queryName.indexOf('.') + 1);
+                                            // console.log(queryName);
+                                            Record.queryAAAA('*.' + queryName, function(err, doc) {
+                                                // console.log(doc)
+                                                if (err) {
+                                                    console.log(err);
+                                                }
+                                                if (doc[0]) {
+                                                    doc = doc.sort(randomOrder);
+                                                    doc.forEach(function(docResult) {
+                                                        switch (docResult.type) {
+                                                            case "AAAA":
+                                                                response.answer.push(dns.AAAA({
+                                                                    name: name,
+                                                                    address: docResult.content,
+                                                                    ttl: docResult.ttl||config.defaultTTL
+                                                                }));
+                                                                break;
+                                                            case "CNAME":
+                                                                response.answer.push(dns.CNAME({
+                                                                    name: name,
+                                                                    data: docResult.content,
+                                                                    ttl: docResult.ttl||config.defaultTTL
+                                                                }));
+                                                                break;
+                                                        }
+                                                    });
+                                                    authorityNS(response, tldname, function() {
+                                                        return response.send();
+                                                    });
+                                                }
+                                                callback();
+                                            });
+                                        }, function() {
+                                            // Nothing found, sending NXDOMAIN
+                                            notfound(response, SOAresult);
+                                        });
+                                    }
+                                }
+                            });
+                        }
+                    });
+                    break;
+                case "CNAME":
+                    // GeoDNS for CNAME record is supported. Processing with edns-client-subnet support
+                    Record.queryGeo(name, type, sourceDest, sourceISP, function(err, georecords) {
+                        // console.log(georecords);
+                        if (err) {
+                            console.log(err);
+                        }
+                        if (georecords[0]) {
+                            // Geo Records found, sending optimized responses..
+                            georecords = georecords.sort(randomOrder);
                             georecords.forEach(function(record) {
                                 response.answer.push(dns.CNAME({
                                     name: record.name,
@@ -222,355 +491,141 @@ function minimoedns(request, response) {
                                     ttl: record.ttl||config.defaultTTL
                                 }));
                             });
-                            break;
-                    }
-                    // Send authority NS records.
-                    config.nameservers.forEach(function(ns) {
-                        response.authority.push(dns.NS({
-                            name: tldname,
-                            data: ns,
-                            ttl: config.defaultTTL
-                        }));
-                        /* 
-                        response.additional.push(dns.A({
-                            name: ns,
-                            address: config.nameserversIP[config.nameservers.indexOf(ns)],
-                            ttl: config.defaultTTL
-                        }));
-                        */
-                    });
-                    return response.send();
-                } else {
-                    Record.queryRecord(name, type, function(err, records) {
-                        // console.log('exec1');
-                        // console.log(records);
-                        if (err) {
-                            console.log(err);
-                        } else if (!records[0]) {
-                            // Query if wildcard exists.
-                            var sub = tld.getSubdomain(name),
-                                pattern = new RegExp(/\./);
-                            // console.log(sub);
-                            if (sub == '') {
-                                // directly send SOA as we queried before.
-                                // push SOA to authority section
-                                var content = SOAresult[0].content.split(" ");
-                                response.authority.push(dns.SOA({
-                                    name: SOAresult[0].name,
-                                    primary: content[0],
-                                    admin: content[1].replace("@", "."),
-                                    serial: content[2],
-                                    refresh: content[3],
-                                    retry: content[4],
-                                    expiration: content[5],
-                                    minimum: content[6],
-                                    ttl: SOAresult[0].ttl||config.defaultTTL
-                                }));
-                                response.header.rcode = consts.NAME_TO_RCODE.NOTFOUND;
-                                response.send();
-                                /*
-                                Record.queryRecord(name, 'SOA', function(err, doc) {
-                                    // console.log('exec2');
-                                    // console.log(doc);
-                                    if (err) {
-                                        console.log(err);
-                                    }
-                                    if (doc[0]) {
-                                        var content = doc[0].content.split(" ");
-                                        response.authority.push(dns.SOA({
-                                            name: doc[0].name,
-                                            primary: content[0],
-                                            admin: content[1].replace("@", "."),
-                                            serial: content[2],
-                                            refresh: content[3],
-                                            retry: content[4],
-                                            expiration: content[5],
-                                            minimum: content[6],
-                                            ttl: doc[0].ttl||config.defaultTTL
-                                        }));
-                                        response.header.rcode = consts.NAME_TO_RCODE.NOTFOUND;
-                                        response.send();
-                                    } else {
-                                        // console.log('NXDOMAIN');
-                                        response.header.rcode = consts.NAME_TO_RCODE.NOTFOUND;
-                                        response.send();
-                                    }
-                                });
-                                */
-                            } else  {
-                                var queryName = name;
-                                async.until(function() {
-                                    return !tld.getSubdomain(queryName);
-                                }, function(callback) {
-                                    queryName = queryName.substr(queryName.indexOf('.') + 1);
-                                    // console.log(queryName);
-                                    Record.queryRecord('*.' + queryName, type, function(err, doc) {
-                                        // console.log(doc)
-                                        if (err) {
-                                            console.log(err);
-                                        }
-                                        if (doc[0]) {
-                                            // console.log(doc[0].type);
-                                            switch (doc[0].type) {
-                                                case 'A':
-                                                    response.answer.push(dns.A({
-                                                        name: name,
-                                                        address: doc[0].content,
-                                                        ttl: doc[0].ttl||config.defaultTTL
-                                                    }));
-                                                    break;
-                                                case 'AAAA':
-                                                    response.answer.push(dns.AAAA({
-                                                        name: name,
-                                                        address: doc[0].content,
-                                                        ttl: doc[0].ttl||config.defaultTTL
-                                                    }));
-                                                    break;
-                                                case 'CNAME':
-                                                    response.answer.push(dns.CNAME({
-                                                        name: name,
-                                                        data: doc[0].content,
-                                                        ttl: doc[0].ttl||config.defaultTTL
-                                                    }));
-                                                    break;
-                                            }
-                                            // Send authority NS records.
-                                            config.nameservers.forEach(function(ns) {
-                                                response.authority.push(dns.NS({
-                                                    name: tldname,
-                                                    data: ns,
-                                                    ttl: config.defaultTTL
-                                                }));
-                                            });
-                                            return response.send();
-                                        }
-                                        callback();
-                                    });
-                                }, function() {
-                                    /*
-                                    Record.queryRecord(tld.getDomain(name), 'SOA', function(err, doc) {
-                                        if (err) {
-                                            console.log(err);
-                                        }
-                                        if (doc[0]) {
-                                            var content = doc[0].content.split(" ");
-                                            response.authority.push(dns.SOA({
-                                                name: doc[0].name,
-                                                primary: content[0],
-                                                admin: content[1].replace("@", "."),
-                                                serial: content[2],
-                                                refresh: content[3],
-                                                retry: content[4],
-                                                expiration: content[5],
-                                                minimum: content[6],
-                                                ttl: doc[0].ttl||config.defaultTTL
-                                            }));
-                                        }
-                                        response.header.rcode = consts.NAME_TO_RCODE.NOTFOUND;
-                                        response.send();
-                                    });
-                                    */
-                                    // push SOA to authority section
-                                    var content = SOAresult[0].content.split(" ");
-                                    response.authority.push(dns.SOA({
-                                        name: SOAresult[0].name,
-                                        primary: content[0],
-                                        admin: content[1].replace("@", "."),
-                                        serial: content[2],
-                                        refresh: content[3],
-                                        retry: content[4],
-                                        expiration: content[5],
-                                        minimum: content[6],
-                                        ttl: SOAresult[0].ttl||config.defaultTTL
-                                    }));
-                                    response.header.rcode = consts.NAME_TO_RCODE.NOTFOUND;
-                                    response.send();
-                                });
-                            }
-
+                            authorityNS(response, tldname, function() {
+                                return response.send();
+                            });
                         } else {
-                            var res = [];
-                            for (var i = 0; i < records.length; i++) {
-                                if (records[i].type === consts.qtypeToName(request.question[0].type)) {
-                                    res.push(records[i]);
+                            // Geo record not found, sending all available records...
+                            Record.queryCNAME(name, function(err, result) {
+                                if (err) {
+                                    return console.log('MiniMoeDNS ERR:\n' + err + '\n');
                                 }
-                            }
-                            if (!res[0]) {
-                                res = records;
-                            }
-                            // console.log(res)
-                            switch (res[0].type) {
-                                case 'SOA':
-                                    var content = res[0].content.split(" ");
-                                    response.answer.push(dns.SOA({
-                                        name: res[0].name,
-                                        primary: content[0],
-                                        admin: content[1].replace("@", "."),
-                                        serial: content[2],
-                                        refresh: content[3],
-                                        retry: content[4],
-                                        expiration: content[5],
-                                        minimum: content[6],
-                                        ttl: res[0].ttl||config.defaultTTL
-                                    }));
-                                    break;
-                                case 'A':
-                                    res = res.sort(randomOrder);
-                                    res.forEach(function(record) {
-                                        response.answer.push(dns.A({
-                                            name: record.name,
-                                            address: record.content,
-                                            ttl: record.ttl||config.defaultTTL
-                                        }));
-                                    });
-                                    break;
-                                case 'AAAA':
-                                    res = res.sort(randomOrder);
-                                    res.forEach(function(record) {
-                                        response.answer.push(dns.AAAA({
-                                            name: record.name,
-                                            address: record.content,
-                                            ttl: record.ttl||config.defaultTTL
-                                        }));
-                                    });
-                                    break;
-                                case 'MX':
-                                    res = res.sort(randomOrder);
-                                    res.forEach(function(record) {
-                                        response.answer.push(dns.MX({
-                                            name: record.name,
-                                            priority: record.prio,
-                                            exchange: record.content,
-                                            ttl: record.ttl||config.defaultTTL
-                                        }));
-                                    });
-                                    break;
-                                case 'TXT':
-                                    res.forEach(function(record) {
-                                        response.answer.push(dns.TXT({
-                                            name: record.name,
-                                            data: record.content,
-                                            ttl: record.ttl||config.defaultTTL
-                                        }));
-                                    });
-                                    break;
-                                case 'SRV':
-                                    res.forEach(function(record) {
-                                        var content = record.content.split(" ");
-                                        response.answer.push(dns.SRV({
-                                            name: record.name,
-                                            priority: record.prio,
-                                            weight: content[0],
-                                            port: content[1],
-                                            target: content[2],
-                                            ttl: record.ttl||config.defaultTTL
-                                        }));
-                                    });
-                                    break;
-                                case 'NS':
-                                    /*
-                                     async.eachSeries(records, function(record, callback) {
-                                     records.forEach(function(record) {
-                                     var ns = config.nameservers.indexOf(record.content);
-                                     if (ns > -1) {
-                                     // we are authoerity server, sending additional information...
-                                     response.additional.push(dns.A({
-                                     name: record.content,
-                                     address: config.nameserversIP[ns],
-                                     ttl: config.defaultTTL
-                                     }));
-                                     }
-                                     response.answer.push(dns.NS({
-                                     name: record.name,
-                                     data: record.content,
-                                     ttl: record.ttl||config.defaultTTL
-                                     }));
-                                     });
-
-                                     Record.queryRecord(record.content, 'A', function(err, docs) {
-                                     // console.log(record.content);
-                                     // console.log(docs);
-                                     if (err) {
-                                     console.log(err);
-                                     }
-
-                                     if (docs) {
-                                     docs.forEach(function(doc) {
-                                     console.log(doc);
-                                     response.additional.push(dns.A({
-                                     name: doc.name,
-                                     address: doc.content,
-                                     ttl: doc.ttl||config.defaultTTL
-                                     }));
-                                     });
-                                     }
-
-                                     callback();
-                                     });
-                                     }, function() {
-                                     records.forEach(function(record) {
-                                     response.answer.push(dns.NS({
-                                     name: record.name,
-                                     data: record.content,
-                                     ttl: record.ttl||config.defaultTTL
-                                     }));
-                                     });
-                                     });
-                                     */
-                                    res = res.sort(randomOrder);
-                                    res.forEach(function(record) {
-                                        /* 
-                                        var ns = config.nameservers.indexOf(record.content);
-                                        if (ns > -1) {
-                                            // we are authoerity server, sending additional information...
-                                            response.additional.push(dns.A({
-                                                name: record.content,
-                                                address: config.nameserversIP[ns],
-                                                ttl: config.defaultTTL
-                                            }));
-                                        } 
-                                        */
-                                        response.answer.push(dns.NS({
-                                            name: record.name,
-                                            data: record.content,
-                                            ttl: record.ttl||config.defaultTTL
-                                        }));
-                                    });
-
-                                    return response.send();
-                                case 'CNAME':
-                                    res = res.sort(randomOrder);
-                                    res.forEach(function(record) {
+                                if (result[0]) {
+                                    result = result.sort(randomOrder);
+                                    result.forEach(function(record) {
                                         response.answer.push(dns.CNAME({
                                             name: record.name,
                                             data: record.content,
                                             ttl: record.ttl||config.defaultTTL
                                         }));
                                     });
-                                    break;
-                            }
-
-                            // Send authority NS records.
-                            config.nameservers.forEach(function(ns) {
-                                response.authority.push(dns.NS({
-                                    name: tldname,
-                                    data: ns,
-                                    ttl: config.defaultTTL
-                                }));
-                                /*
-                                response.additional.push(dns.A({
-                                    name: ns,
-                                    address: config.nameserversIP[config.nameservers.indexOf(ns)],
-                                    ttl: config.defaultTTL
-                                }));
-                                */
+                                    authorityNS(response, tldname, function() {
+                                        return response.send();
+                                    });
+                                } else {
+                                    // Current querying name not found, trying if its wildcard.
+                                    var sub = tld.getSubdomain(name);
+                                    // var pattern = new RegExp(/\./);
+                                    if (sub == '') {
+                                        // directly send SOA as we queried before.
+                                        notfound(response, SOAresult);
+                                    } else  {
+                                        var queryName = name;
+                                        async.until(function() {
+                                            return !tld.getSubdomain(queryName);
+                                        }, function(callback) {
+                                            queryName = queryName.substr(queryName.indexOf('.') + 1);
+                                            // console.log(queryName);
+                                            Record.queryCNAME('*.' + queryName, function(err, doc) {
+                                                // console.log(doc)
+                                                if (err) {
+                                                    console.log(err);
+                                                }
+                                                if (doc[0]) {
+                                                    doc = doc.sort(randomOrder);
+                                                    doc.forEach(function(docResult) {
+                                                        response.answer.push(dns.CNAME({
+                                                            name: docResult.name,
+                                                            data: docResult.content,
+                                                            ttl: docResult.ttl||config.defaultTTL
+                                                        }));
+                                                    });
+                                                    authorityNS(response, tldname, function() {
+                                                        return response.send();
+                                                    });
+                                                }
+                                                callback();
+                                            });
+                                        }, function() {
+                                            // Nothing found, sending NXDOMAIN
+                                            notfound(response, SOAresult);
+                                        });
+                                    }
+                                }
                             });
-                            // console.log(response);
-                            response.send();
                         }
                     });
-                }
-            });
+                    break;
+                case "MX":
+                    Record.queryMX(name, function(err, res) {
+                        if (err) {
+                            return console.log('MiniMoeDNS ERR:\n' + err + '\n');
+                        }
+                        if (res[0]) {
+                            res = res.sort(randomOrder);
+                            res.forEach(function(record) {
+                                response.answer.push(dns.MX({
+                                    name: record.name,
+                                    priority: record.prio,
+                                    exchange: record.content,
+                                    ttl: record.ttl||config.defaultTTL
+                                }));
+                            });
+                            authorityNS(response, tldname, function() {
+                                return response.send();
+                            });
+                        } else {
+                            notfound(response, SOAresult);
+                        }
+                    });
+                    break;
+                case "SRV":
+                    Record.querySRV(name, function(err, res) {
+                        if (err) {
+                            return console.log('MiniMoeDNS ERR:\n' + err + '\n');
+                        }
+                        if (res[0]) {
+                            res.forEach(function(record) {
+                                var content = record.content.split(" ");
+                                response.answer.push(dns.SRV({
+                                    name: record.name,
+                                    priority: record.prio,
+                                    weight: content[0],
+                                    port: content[1],
+                                    target: content[2],
+                                    ttl: record.ttl||config.defaultTTL
+                                }));
+                            });
+                            authorityNS(response, tldname, function() {
+                                return response.send();
+                            });
+                        } else {
+                            notfound(response, SOAresult);
+                        }
+                    });
+                    break;
+                case "TXT":
+                    Record.queryTXT(name, function(err, res) {
+                        if (err) {
+                            return console.log('MiniMoeDNS ERR:\n' + err + '\n');
+                        }
+                        if (res[0]) {
+                            res.forEach(function(record) {
+                                response.answer.push(dns.TXT({
+                                    name: record.name,
+                                    data: record.content,
+                                    ttl: record.ttl||config.defaultTTL
+                                }));
+                            });
+                            authorityNS(response, tldname, function() {
+                                return response.send();
+                            });
+                        } else {
+                            notfound(response, SOAresult);
+                        }
+                    });
+                    break;
+            }
         }
     });
 }
