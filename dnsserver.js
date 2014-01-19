@@ -142,12 +142,12 @@ function minimoedns(request, response) {
     if (request.edns_options[0]) {
         // response.edns_version = request.edns_version;
         var tempip = request.edns_options[0].data.slice(4);
-        // console.log(JSON.stringify(tempip))
+        // console.log(request.edns_options[0].data.toJSON())
         if (request.edns_options[0].data.toJSON()[1] === 1) {
             // client is IPv4
             tempip = tempip.toJSON().join('.');
-            if (request.edns_options[0].data.toJSON()[2] < 24) {
-                for (var i = request.edns_options[0].data.toJSON()[2]; i < 24; i += 8) {
+            if (request.edns_options[0].data.toJSON()[2] < 32) {
+                for (var i = request.edns_options[0].data.toJSON()[2]; i <= 24; i += 8) {
                     tempip += '.0';
                 }
             }
