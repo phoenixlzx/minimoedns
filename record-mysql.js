@@ -64,7 +64,7 @@ exports.queryGeo = function(name, type, dest, isp, callback) {
         if (err) {
             console.log(err.message);
         }
-        connection.query('SELECT * FROM `records` WHERE `name` = ? AND (`type` = ? OR `type` = "CNAME") AND (`geo` = ? OR `geo` = ? OR `geo` = ? OR `geo` = ?) AND (INSTR(?, `geoisp`))',
+        connection.query('SELECT * FROM `records` WHERE `paused` IS NOT TRUE AND `name` = ? AND (`type` = ? OR `type` = "CNAME") AND (`geo` = ? OR `geo` = ? OR `geo` = ? OR `geo` = ?) AND (INSTR(?, `geoisp`))',
             [name, type, dest.country_code, dest.country_code3, dest.country_name, dest.continent_code, isp],
             function(err, result) {
                 if (err) {
@@ -75,7 +75,7 @@ exports.queryGeo = function(name, type, dest, isp, callback) {
                     connection.release();
                     return callback(null, result);
                 } else {
-                    connection.query('SELECT * FROM `records` WHERE `name` = ? AND (`type` = ? OR `type` = "CNAME") AND (`geo` = ? OR `geo` = ? OR `geo` = ? OR `geo` = ?) AND `geoisp` IS NULL',
+                    connection.query('SELECT * FROM `records` WHERE `paused` IS NOT TRUE AND `name` = ? AND (`type` = ? OR `type` = "CNAME") AND (`geo` = ? OR `geo` = ? OR `geo` = ? OR `geo` = ?) AND `geoisp` IS NULL',
                         [name, type, dest.country_code, dest.country_code3, dest.country_name, dest.continent_code],
                         function(err, result2) {
                             if (err) {
