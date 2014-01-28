@@ -99,6 +99,7 @@ function randomOrder() {
 }
 
 function authorityNS(res, queryName, callback) {
+    var testv4 = new RegExp(/\d\d?\d?\.\d\d?\d?\.\d\d?\d?\.\d\d?\d?/)
     // Send authority NS records.
     config.nameservers.forEach(function(ns) {
         res.authority.push(dns.NS({
@@ -107,7 +108,7 @@ function authorityNS(res, queryName, callback) {
             ttl: config.defaultTTL
         }));
         config.nameserversIP[ns].forEach(function(nsIP) {
-            if (nsIP.length <= 15) {
+            if (testv4.test(nsIP)) {
                 res.additional.push(dns.A({
                     name: ns,
                     address: nsIP,
