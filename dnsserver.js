@@ -106,6 +106,21 @@ function authorityNS(res, queryName, callback) {
             data: ns,
             ttl: config.defaultTTL
         }));
+        config.nameserversIP[ns].forEach(function(nsIP) {
+            if (nsIP.length <= 15) {
+                res.additional.push(dns.A({
+                    name: ns,
+                    address: nsIP,
+                    ttl: config.defaultTTL
+                }));
+            } else {
+                res.additional.push(dns.AAAA({
+                    name: ns,
+                    address: nsIP,
+                    ttl: config.defaultTTL
+                }));
+            }
+        });
     });
     callback();
 }
