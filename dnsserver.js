@@ -415,6 +415,20 @@ function minimoedns(request, response) {
                                     result = result.sort(randomOrder);
                                     result.forEach(function(record) {
                                         switch (record.type) {
+                                            case "AAAA":
+                                                response.answer.push(dns.AAAA({
+                                                    name: record.name,
+                                                    address: record.content,
+                                                    ttl: record.ttl||config.defaultTTL
+                                                }));
+                                                break;
+                                            case "CNAME":
+                                                response.answer.push(dns.CNAME({
+                                                    name: record.name,
+                                                    data: record.content,
+                                                    ttl: record.ttl||config.defaultTTL
+                                                }));
+                                                break;
                                             case "A":
                                                 var content = SOAresult[0].content.split(" ");
                                                 response.authority.push(dns.SOA({
@@ -430,20 +444,6 @@ function minimoedns(request, response) {
                                                 }));
                                                 response.header.rcode = consts.NAME_TO_RCODE.NOERROR;
                                                 return response.send();
-                                                break;
-                                            case "AAAA":
-                                                response.answer.push(dns.AAAA({
-                                                    name: record.name,
-                                                    address: record.content,
-                                                    ttl: record.ttl||config.defaultTTL
-                                                }));
-                                                break;
-                                            case "CNAME":
-                                                response.answer.push(dns.CNAME({
-                                                    name: record.name,
-                                                    data: record.content,
-                                                    ttl: record.ttl||config.defaultTTL
-                                                }));
                                                 break;
                                         }
                                     });
@@ -473,6 +473,20 @@ function minimoedns(request, response) {
                                                     doc = doc.sort(randomOrder);
                                                     doc.forEach(function(docResult) {
                                                         switch (docResult.type) {
+                                                            case "AAAA":
+                                                                response.answer.push(dns.AAAA({
+                                                                    name: name,
+                                                                    address: docResult.content,
+                                                                    ttl: docResult.ttl||config.defaultTTL
+                                                                }));
+                                                                break;
+                                                            case "CNAME":
+                                                                response.answer.push(dns.CNAME({
+                                                                    name: name,
+                                                                    data: docResult.content,
+                                                                    ttl: docResult.ttl||config.defaultTTL
+                                                                }));
+                                                                break;
                                                             case "A":
                                                                 var content = SOAresult[0].content.split(" ");
                                                                 response.authority.push(dns.SOA({
@@ -488,20 +502,6 @@ function minimoedns(request, response) {
                                                                 }));
                                                                 response.header.rcode = consts.NAME_TO_RCODE.NOERROR;
                                                                 return response.send();
-                                                                break;
-                                                            case "AAAA":
-                                                                response.answer.push(dns.AAAA({
-                                                                    name: name,
-                                                                    address: docResult.content,
-                                                                    ttl: docResult.ttl||config.defaultTTL
-                                                                }));
-                                                                break;
-                                                            case "CNAME":
-                                                                response.answer.push(dns.CNAME({
-                                                                    name: name,
-                                                                    data: docResult.content,
-                                                                    ttl: docResult.ttl||config.defaultTTL
-                                                                }));
                                                                 break;
                                                         }
                                                     });
