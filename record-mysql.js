@@ -156,17 +156,28 @@ exports.queryAAAA = function(name, callback) {
         if (err) {
             console.log(err.message);
         }
-        connection.query('SELECT * from `records` WHERE `paused` IS NOT TRUE AND `name` = ? AND (`type` = "A" OR `type` = "AAAA" OR `type` = "CNAME")',
+        connection.query('SELECT * from `records` WHERE `paused` IS NOT TRUE AND `name` = ? AND (`type` = "AAAA" OR `type` = "CNAME")',
             name,
             function(err, result) {
                 if (err) {
                     connection.release();
                     return callback(err, null);
                 }
-
-                connection.release();
-                callback(null, result);
-
+                if (result) {
+                    connection.release();
+                    callback(null, result);
+                } else {
+                    connection.query('SELECT * from `records` WHERE `paused` IS NOT TRUE AND `name` = ? AND `type` = "A"',
+                        name,
+                        function(err, resultA) {
+                            if (err) {
+                                connection.release();
+                                return callback(err, null);
+                            }
+                            connection.release();
+                            callback(null, resultA);
+                        });
+                }
             });
     });
 }
