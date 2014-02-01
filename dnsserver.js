@@ -99,7 +99,7 @@ function randomOrder() {
 }
 
 function authorityNS(res, queryName, callback) {
-    var testv4 = new RegExp(/\d\d?\d?\.\d\d?\d?\.\d\d?\d?\.\d\d?\d?/)
+    var testv4 = new RegExp(/\d\d?\d?\.\d\d?\d?\.\d\d?\d?\.\d\d?\d?/);
     // Send authority NS records.
     config.nameservers.forEach(function(ns) {
         res.authority.push(dns.NS({
@@ -415,6 +415,8 @@ function minimoedns(request, response) {
                                     result = result.sort(randomOrder);
                                     result.forEach(function(record) {
                                         switch (record.type) {
+                                            case "A": 
+                                                break;
                                             case "AAAA":
                                                 response.answer.push(dns.AAAA({
                                                     name: record.name,
