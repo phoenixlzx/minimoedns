@@ -163,7 +163,7 @@ exports.queryAAAA = function(name, callback) {
                     connection.release();
                     return callback(err, null);
                 }
-                if (result) {
+                if (result[0]) {
                     connection.release();
                     callback(null, result);
                 } else {
