@@ -415,7 +415,21 @@ function minimoedns(request, response) {
                                     result = result.sort(randomOrder);
                                     result.forEach(function(record) {
                                         switch (record.type) {
-                                            case "A": 
+                                            case "A":
+                                                var content = SOAresult[0].content.split(" ");
+                                                response.authority.push(dns.SOA({
+                                                    name: SOAresult[0].name,
+                                                    primary: content[0],
+                                                    admin: content[1].replace("@", "."),
+                                                    serial: content[2],
+                                                    refresh: content[3],
+                                                    retry: content[4],
+                                                    expiration: content[5],
+                                                    minimum: content[6],
+                                                    ttl: SOAresult[0].ttl||config.defaultTTL
+                                                }));
+                                                response.header.rcode = consts.NAME_TO_RCODE.NOERROR;
+                                                return response.send();
                                                 break;
                                             case "AAAA":
                                                 response.answer.push(dns.AAAA({
@@ -459,6 +473,22 @@ function minimoedns(request, response) {
                                                     doc = doc.sort(randomOrder);
                                                     doc.forEach(function(docResult) {
                                                         switch (docResult.type) {
+                                                            case "A":
+                                                                var content = SOAresult[0].content.split(" ");
+                                                                response.authority.push(dns.SOA({
+                                                                    name: SOAresult[0].name,
+                                                                    primary: content[0],
+                                                                    admin: content[1].replace("@", "."),
+                                                                    serial: content[2],
+                                                                    refresh: content[3],
+                                                                    retry: content[4],
+                                                                    expiration: content[5],
+                                                                    minimum: content[6],
+                                                                    ttl: SOAresult[0].ttl||config.defaultTTL
+                                                                }));
+                                                                response.header.rcode = consts.NAME_TO_RCODE.NOERROR;
+                                                                return response.send();
+                                                                break;
                                                             case "AAAA":
                                                                 response.answer.push(dns.AAAA({
                                                                     name: name,
