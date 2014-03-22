@@ -136,7 +136,7 @@ exports.queryA = function(name, callback) {
         if (err) {
             console.log(err.message);
         }
-        connection.query('SELECT * from `records` WHERE `paused` IS NOT TRUE AND `name` = ? AND (`type` = "A" OR `type` = "CNAME")',
+        connection.query('SELECT * from `records` WHERE `paused` IS NOT TRUE AND `name` = ? AND (`type` = "A" OR `type` = "CNAME") AND `geo` IS NULL',
             name,
             function(err, result) {
                 if (err) {
@@ -156,7 +156,7 @@ exports.queryAAAA = function(name, callback) {
         if (err) {
             console.log(err.message);
         }
-        connection.query('SELECT * from `records` WHERE `paused` IS NOT TRUE AND `name` = ? AND (`type` = "AAAA" OR `type` = "CNAME")',
+        connection.query('SELECT * from `records` WHERE `paused` IS NOT TRUE AND `name` = ? AND (`type` = "AAAA" OR `type` = "CNAME") AND `geo` IS NULL',
             name,
             function(err, result) {
                 if (err) {
@@ -187,7 +187,7 @@ exports.queryCNAME = function(name, callback) {
         if (err) {
             console.log(err.message);
         }
-        connection.query('SELECT * from `records` WHERE `paused` IS NOT TRUE AND `name` = ? AND (`type` = "CNAME")',
+        connection.query('SELECT * from `records` WHERE `paused` IS NOT TRUE AND `name` = ? AND (`type` = "CNAME")  AND `geo` IS NULL',
             name,
             function(err, result) {
                 if (err) {
