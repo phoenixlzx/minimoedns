@@ -56,7 +56,7 @@ exports.queryRecord = function(name, type, callback) {
     });
 }
 
-exports.queryGeo = function(name, type, dest, isp, callback) {
+exports.queryGeo = function(name, type, dest, isp, sourceIP, callback) {
     if (dest === null || isp === null) {
         return callback(null, []);
     }
@@ -64,8 +64,8 @@ exports.queryGeo = function(name, type, dest, isp, callback) {
         if (err) {
             console.log(err.message);
         }
-        connection.query('SELECT * FROM `records` WHERE `paused` IS NOT TRUE AND `name` = ? AND (`type` = ? OR `type` = "CNAME") AND (`geo` = ? OR `geo` = ? OR `geo` = ? OR `geo` = ?) AND (INSTR(?, `geoisp`))',
-            [name, type, dest.country_code, dest.country_code3, dest.country_name, dest.continent_code, isp],
+        connection.query('SELECT * FROM `records` WHERE `paused` IS NOT TRUE AND `name` = ? AND (`type` = ? OR `type` = "CNAME") AND (((`geo` = ? OR `geo` = ? OR `geo` = ? OR `geo` = ?) AND (INSTR(?, `geoisp`))) OR (`geoisp` = ?))',
+            [name, type, dest.country_code, dest.country_code3, dest.country_name, dest.continent_code, isp, sourceIP],
             function(err, result) {
                 if (err) {
                     connection.release();

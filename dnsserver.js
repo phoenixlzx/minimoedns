@@ -150,7 +150,7 @@ function minimoedns(request, response) {
 
     var name = request.question[0].name,
         type = consts.qtypeToName(request.question[0].type),
-        sourceIP = request.address.address;
+        sourceIP = request.address.address.slice(0, request.address.address.lastIndexOf('.')) + '.0';
     var tldname = tld.getDomain(name);
 
     // EDNS options
@@ -261,7 +261,7 @@ function minimoedns(request, response) {
                     break;
                 case "A":
                     // GeoDNS for A record is supported. Processing with edns-client-subnet support
-                    Record.queryGeo(name, type, sourceDest, sourceISP, function(err, georecords) {
+                    Record.queryGeo(name, type, sourceDest, sourceISP, sourceIP, function(err, georecords) {
                         // console.log(georecords);
                         if (err) {
                             console.log(err);
@@ -376,7 +376,7 @@ function minimoedns(request, response) {
                     break;
                 case "AAAA":
                     // GeoDNS for AAAA record is supported. Processing WITHOUT edns-client-subnet support
-                    Record.queryGeo(name, type, sourceDest, sourceISP, function(err, georecords) {
+                    Record.queryGeo(name, type, sourceDest, sourceISP, sourceIP, function(err, georecords) {
                         // console.log(georecords);
                         if (err) {
                             console.log(err);
@@ -523,7 +523,7 @@ function minimoedns(request, response) {
                     break;
                 case "CNAME":
                     // GeoDNS for CNAME record is supported. Processing with edns-client-subnet support
-                    Record.queryGeo(name, type, sourceDest, sourceISP, function(err, georecords) {
+                    Record.queryGeo(name, type, sourceDest, sourceISP, sourceIP, function(err, georecords) {
                         // console.log(georecords);
                         if (err) {
                             console.log(err);
